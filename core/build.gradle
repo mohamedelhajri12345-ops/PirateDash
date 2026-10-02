@@ -6,3 +6,9 @@ sourceCompatibility = 1.6
 sourceSets.main.java.srcDirs = ["src/"]
 
 eclipse.project.name = appName + "-core"
+
+dependencies {
+    testCompile "junit:junit:4.12"
+}
+
+sourceSets.test.java.srcDirs = ["test/"]

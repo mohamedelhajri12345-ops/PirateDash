@@ -41,10 +41,16 @@ import dev.lonami.klooni.game.Board;
 import dev.lonami.klooni.game.BonusParticleHandler;
 import dev.lonami.klooni.game.GameLayout;
 import dev.lonami.klooni.game.Missions;
+import dev.lonami.klooni.game.Achievements;
+import dev.lonami.klooni.game.LevelCatalog;
+import dev.lonami.klooni.game.LevelDefinition;
+import dev.lonami.klooni.game.LevelProgress;
 import dev.lonami.klooni.game.Piece;
 import dev.lonami.klooni.game.PieceHolder;
 import dev.lonami.klooni.game.Scorer;
 import dev.lonami.klooni.game.TimeScorer;
+
+import java.util.Random;
 import dev.lonami.klooni.serializer.BinSerializable;
 import dev.lonami.klooni.serializer.BinSerializer;
 
@@ -77,6 +83,16 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
     private final Matrix4 shakeMatrix = new Matrix4();
     private int lastMissionScore;
 
+    // Star Puzzle: adventure level mode state
+    private LevelDefinition level;
+    private boolean dailyLevel;
+    private int movesUsed;
+    private int levelLines;
+    private int maxCombo;
+    private float timeLeft;
+    private boolean levelFinished;
+    private final Label objectiveLabel;
+
     // Star Puzzle HUD extras
     private final Label comboLabel;
     private final Label recordBanner;
@@ -99,6 +115,7 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
 
     final static int GAME_MODE_SCORE = 0;
     final static int GAME_MODE_TIME = 1;
+    final static int GAME_MODE_LEVEL = 2;
 
     private final static String SAVE_DAT_FILENAME = ".klooni.sav";
 
@@ -111,10 +128,61 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
         this(game, gameMode, true);
     }
 
+    // Star Puzzle: adventure level constructor
+    GameScreen(final Klooni game, final LevelDefinition level) {
+        this(game, level, false);
+    }
+
+    GameScreen(final Klooni game, final LevelDefinition level, final boolean daily) {
+        batch = new SpriteBatch();
+        this.game = game;
+        this.gameMode = GAME_MODE_LEVEL;
+        this.level = level;
+        this.dailyLevel = daily;
+
+        final GameLayout layout = new GameLayout();
+        scorer = new Scorer(game, layout);
+
+        board = new Board(layout, BOARD_SIZE);
+        holder = new PieceHolder(layout, board, HOLDER_PIECE_COUNT, board.cellSize);
+        pauseMenu = new PauseMenuStage(layout, game, scorer, gameMode, level);
+        bonusParticleHandler = new BonusParticleHandler(game);
+
+        gameOverSound = Gdx.audio.newSound(Gdx.files.internal("sound/game_over.mp3"));
+
+        Label.LabelStyle comboStyle = new Label.LabelStyle();
+        comboStyle.font = game.skin.getFont("font_small");
+        comboLabel = new Label("", comboStyle);
+        comboLabel.setAlignment(Align.center);
+
+        Label.LabelStyle bannerStyle = new Label.LabelStyle();
+        bannerStyle.font = game.skin.getFont("font");
+        recordBanner = new Label("NEW RECORD!", bannerStyle);
+        recordBanner.setAlignment(Align.center);
+
+        Label.LabelStyle objectiveStyle = new Label.LabelStyle();
+        objectiveStyle.font = game.skin.getFont("font_small");
+        objectiveLabel = new Label("", objectiveStyle);
+        objectiveLabel.setAlignment(Align.center);
+
+        // Level setup: obstacle pre-fill and special piece chance
+        prefillBoard();
+        Piece.specialChance = level.specialChance;
+
+        movesUsed = 0;
+        levelLines = 0;
+        maxCombo = 0;
+        timeLeft = level.timeLimit > 0 ? level.timeLimit : 0f;
+        levelFinished = false;
+
+        Achievements.onGameStarted();
+    }
+
     GameScreen(final Klooni game, final int gameMode, final boolean loadSave) {
         batch = new SpriteBatch();
         this.game = game;
         this.gameMode = gameMode;
+        Piece.specialChance = 5;
 
         final GameLayout layout = new GameLayout();
         switch (gameMode) {
@@ -145,6 +213,11 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
         bannerStyle.font = game.skin.getFont("font");
         recordBanner = new Label("NEW RECORD!", bannerStyle);
         recordBanner.setAlignment(Align.center);
+
+        Label.LabelStyle objectiveStyle = new Label.LabelStyle();
+        objectiveStyle.font = game.skin.getFont("font_small");
+        objectiveLabel = new Label("", objectiveStyle);
+        objectiveLabel.setAlignment(Align.center);
 
         if (gameMode == GAME_MODE_SCORE) {
             if (loadSave) {
@@ -195,7 +268,7 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
 
     @Override
     public void show() {
-        if (pauseMenu.isShown()) // Will happen if we go to the customize menu
+        if (pauseMenu.isShown() || levelFinished) // Menu shown or level result dialog
             Gdx.input.setInputProcessor(pauseMenu);
         else
             Gdx.input.setInputProcessor(this);
@@ -222,6 +295,17 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
             // TODO A bit hardcoded (timeOver = scorer instanceof TimeScorer)
             // Perhaps have a better mode to pass the required texture to overlay
             doGameOver(scorer.gameOverReason());
+        }
+
+        // Star Puzzle: adventure level timer and objective tracking
+        if (level != null && !levelFinished && !pauseMenu.isShown()) {
+            if (level.timeLimit > 0) {
+                timeLeft -= delta;
+                if (timeLeft <= 0f) {
+                    timeLeft = 0f;
+                    finishLevel(false, timeDetail());
+                }
+            }
         }
 
         batch.begin();
@@ -255,6 +339,17 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
                     board.pos.x, board.pos.y + board.cellCount * board.cellSize - board.cellSize * 0.8f,
                     board.cellCount * board.cellSize, board.cellSize * 0.8f);
             comboLabel.draw(batch, 1f);
+        }
+
+        // Star Puzzle: adventure objective HUD, drawn above the board
+        if (level != null && !levelFinished) {
+            objectiveLabel.setText(objectiveText());
+            objectiveLabel.setColor(Klooni.theme.foreground.r, Klooni.theme.foreground.g,
+                    Klooni.theme.foreground.b, 0.85f);
+            objectiveLabel.setBounds(
+                    0f, board.pos.y + board.cellCount * board.cellSize + board.cellSize * 0.15f,
+                    Gdx.graphics.getWidth(), board.cellSize * 0.7f);
+            objectiveLabel.draw(batch, 1f);
         }
 
         // Star Puzzle: new record celebration banner
@@ -297,8 +392,10 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
 
     @Override
     public boolean keyUp(int keycode) {
-        if (keycode == Input.Keys.P || keycode == Input.Keys.BACK) // Pause
-            showPauseMenu();
+        if (keycode == Input.Keys.P || keycode == Input.Keys.BACK) { // Pause
+            if (!levelFinished)
+                showPauseMenu();
+        }
 
         return false;
     }
@@ -326,6 +423,9 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
             if (cleared > 0) {
                 // Star Puzzle: combo system — consecutive clearing pieces
                 combo++;
+                if (combo > maxCombo)
+                    maxCombo = combo;
+                Achievements.onCombo(combo);
                 if (combo >= 2) {
                     final int comboBonus = bonus * (combo - 1);
                     scorer.addPieceScore(comboBonus);
@@ -344,30 +444,46 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
                 Klooni.vibrate(35);
 
                 Missions.onLinesCleared(cleared);
+                Achievements.onLinesCleared(cleared);
+                if (level != null)
+                    levelLines += cleared;
             } else {
                 combo = 0;
             }
 
             // Star Puzzle: level system, a new banner every 500 points
-            final int level = scorer.getCurrentScore() / 500 + 1;
-            if (level > lastLevel) {
+            final int scoreLevel = scorer.getCurrentScore() / 500 + 1;
+            if (scoreLevel > lastLevel) {
                 if (lastLevel > 0) {
                     bonusParticleHandler.addMessage(
                             board.cellCenter(board.cellCount / 2, board.cellCount / 2),
-                            "LEVEL " + level);
-                    Klooni.playComboSound(level);
+                            "LEVEL " + scoreLevel);
+                    Klooni.playComboSound(scoreLevel);
                     Klooni.vibrate(60);
                 }
-                lastLevel = level;
+                lastLevel = scoreLevel;
             }
 
             // Star Puzzle: daily missions progress
             Missions.onPiecesPlaced(result.area);
             Missions.onScore(scorer.getCurrentScore(), lastMissionScore);
             lastMissionScore = scorer.getCurrentScore();
+            Achievements.onPiecesPlaced(result.area);
 
+            // Star Puzzle: adventure level progression
+            if (level != null && !levelFinished) {
+                movesUsed++;
+
+                if (isLevelObjectiveComplete()) {
+                    finishLevel(true, objectiveDetail());
+                } else if (level.maxMoves > 0 && movesUsed >= level.maxMoves) {
+                    finishLevel(false, objectiveDetail());
+                } else if (isGameOver()) {
+                    finishLevel(false, "No space left on the board");
+                }
+            }
             // After the piece was put, check if it's game over
-            if (isGameOver()) {
+            else if (isGameOver()) {
                 doGameOver("no moves left");
             }
         }
@@ -427,6 +543,7 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
             case Piece.SPECIAL_STAR: {
                 // +150 points, the cell turns into a normal colored cell
                 board.setCell(x, y, 0);
+                Achievements.onSpecialUsed();
                 scorer.addPieceScore(150);
                 bonusParticleHandler.addMessage(board.cellCenter(x, y), "+150");
                 Klooni.playStarSound();
@@ -435,6 +552,7 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
             }
             case Piece.SPECIAL_BOMB: {
                 final int clearedCells = board.clearArea(x, y, 1, game.effect);
+                Achievements.onSpecialUsed();
                 scorer.addPieceScore(clearedCells * 2);
                 bonusParticleHandler.addMessage(board.cellCenter(x, y), "BOOM!");
                 Klooni.playBombSound();
@@ -444,6 +562,7 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
             }
             case Piece.SPECIAL_LIGHTNING: {
                 final int clearedCells = board.clearCross(x, y, game.effect);
+                Achievements.onSpecialUsed();
                 scorer.addPieceScore(clearedCells * 2);
                 bonusParticleHandler.addMessage(board.cellCenter(x, y), "ZAP!");
                 Klooni.playComboSound(3);
@@ -456,9 +575,138 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
 
     //endregion
 
+    //region Star Puzzle adventure levels
+
+    // Fills the board with obstacle cells based on the level's seed and
+    // density. Full rows and columns are avoided so the level is always
+    // playable from the start.
+    private void prefillBoard() {
+        if (level == null || level.prefillDensity <= 0)
+            return;
+
+        final Random random = new Random(level.seed);
+        final int cellCount = board.cellCount;
+        final int targetCells = cellCount * cellCount * level.prefillDensity / 100;
+
+        int placed = 0;
+        while (placed < targetCells) {
+            final int x = random.nextInt(cellCount);
+            final int y = random.nextInt(cellCount);
+            if (board.isEmpty(x, y)) {
+                board.setCell(x, y, random.nextInt(8));
+                ++placed;
+            }
+            // Avoid creating pre-cleared lines: clear them and stop filling
+            // when a complete line appears (defensive, next loop breaks it)
+            if (board.clearComplete(game.effect) > 0)
+                placed = Math.max(0, placed - cellCount);
+        }
+
+        // Never leave a fully blocked corner: clear a 2x2 area at the center
+        board.setCell(cellCount / 2, cellCount / 2, -1);
+        board.setCell(cellCount / 2 - 1, cellCount / 2, -1);
+        board.setCell(cellCount / 2, cellCount / 2 - 1, -1);
+        board.setCell(cellCount / 2 - 1, cellCount / 2 - 1, -1);
+    }
+
+    private boolean isLevelObjectiveComplete() {
+        switch (level.objectiveType) {
+            case LevelDefinition.TYPE_LINES:
+                return levelLines >= level.targetLines;
+            case LevelDefinition.TYPE_COMBO:
+                return maxCombo >= level.targetCombo;
+            default:
+                return scorer.getCurrentScore() >= level.targetScore;
+        }
+    }
+
+    // Fraction of the move/time allowance left, used for stars
+    private float allowanceLeftFraction() {
+        if (level.timeLimit > 0)
+            return Math.max(0f, timeLeft / (float) level.timeLimit);
+        if (level.maxMoves > 0)
+            return Math.max(0f, (level.maxMoves - movesUsed) / (float) level.maxMoves);
+        return 0f;
+    }
+
+    private String objectiveText() {
+        final String allowance = level.timeLimit > 0
+                ? ((int) timeLeft + "s")
+                : (movesUsed + "/" + level.maxMoves + " moves");
+        switch (level.objectiveType) {
+            case LevelDefinition.TYPE_LINES:
+                return levelLines + "/" + level.targetLines + " lines  |  " + allowance;
+            case LevelDefinition.TYPE_COMBO:
+                return "combo x" + maxCombo + "/x" + level.targetCombo + "  |  " + allowance;
+            default:
+                return scorer.getCurrentScore() + "/" + level.targetScore + "  |  " + allowance;
+        }
+    }
+
+    private String objectiveDetail() {
+        return objectiveText();
+    }
+
+    private String timeDetail() {
+        return "Time is up!  " + scorer.getCurrentScore() + "/" + level.targetScore;
+    }
+
+    // Completes (or fails) the adventure level, awarding stars and coins
+    // through the real progression system, then shows the result dialog.
+    private void finishLevel(final boolean won, final String detail) {
+        if (levelFinished)
+            return;
+        levelFinished = true;
+        gameOverDone = true; // Prevent the endless game-over path
+        holder.enabled = false;
+
+        int stars = 0;
+        int coins = 0;
+        if (won) {
+            stars = level.starsFor(allowanceLeftFraction());
+
+            // Coins are paid only when progress improves, so levels
+            // cannot be farmed for infinite coins.
+            final boolean improved = LevelProgress.setStars(level.id, stars);
+            if (improved)
+                coins = Math.round(level.rewardCoins * stars / 3f);
+
+            if (dailyLevel && !LevelProgress.isDailyDone()) {
+                LevelProgress.markDailyDone();
+                coins += 25; // daily challenge bonus
+            }
+
+            if (coins > 0)
+                Klooni.addMoney(coins);
+
+            if (Klooni.soundsEnabled())
+                Klooni.playStarSound();
+            Klooni.vibrate(120);
+            Achievements.onLevelCompleted();
+        } else {
+            if (Klooni.soundsEnabled())
+                gameOverSound.play();
+            Klooni.vibrate(200);
+        }
+
+        final ResultDialog dialog = new ResultDialog(
+                game, game.skin, level, won, stars, coins, detail, dailyLevel);
+        dialog.pack();
+        dialog.show(pauseMenu);
+        dialog.setPosition((pauseMenu.getWidth() - dialog.getWidth()) * 0.5f,
+                (pauseMenu.getHeight() - dialog.getHeight()) * 0.5f);
+        Gdx.input.setInputProcessor(pauseMenu);
+    }
+
+    //endregion
+
     //region Saving and loading
 
     private void saveMoney() {
+        // Adventure levels pay coins through level rewards only
+        if (level != null)
+            return;
+
         // Calculate new money since the previous saving
         int nowScore = scorer.getCurrentScore();
         int newMoneyScore = nowScore - savedMoneyScore;

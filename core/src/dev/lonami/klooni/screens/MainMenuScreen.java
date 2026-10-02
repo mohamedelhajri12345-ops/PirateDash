@@ -33,10 +33,13 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import dev.lonami.klooni.Klooni;
 import dev.lonami.klooni.SkinLoader;
 import dev.lonami.klooni.actors.SoftButton;
+import dev.lonami.klooni.game.LevelCatalog;
+import dev.lonami.klooni.game.LevelProgress;
 
-// Main menu screen, presenting some options (play, customize…)
-// Star Puzzle redesign: mobile-first vertical layout with the
-// logo on top, a big play button and a tidy grid of icon buttons.
+// Main menu screen for the World Puzzle Adventure:
+// the journey (world map) is the primary action, with the classic
+// endless modes, daily challenge, rewards, customization and
+// the player profile one tap away.
 public class MainMenuScreen extends InputListener implements Screen {
 
     //region Members
@@ -73,99 +76,115 @@ public class MainMenuScreen extends InputListener implements Screen {
         final Texture logoTexture = SkinLoader.loadPng("logo");
         final Image logo = new Image(logoTexture);
         table.add(logo).colspan(3)
-                .size(width * 0.72f, height * 0.15f)
+                .size(width * 0.68f, height * 0.14f)
                 .padTop(height * 0.02f).space(height * 0.015f);
 
         table.row();
 
-        // Play button, the star of the menu
+        // Play button, the star of the menu: enter the world map journey
         final SoftButton playButton = new SoftButton(
                 0, GameScreen.hasSavedData() ? "play_saved_texture" : "play_texture");
         playButton.addListener(new ChangeListener() {
             public void changed(ChangeEvent event, Actor actor) {
-                MainMenuScreen.this.game.transitionTo(
-                        new GameScreen(MainMenuScreen.this.game, GameScreen.GAME_MODE_SCORE));
+                MainMenuScreen.this.game.transitionTo(new WorldMapScreen(MainMenuScreen.this.game));
             }
         });
         table.add(playButton).colspan(3).size(width * 0.62f, height * 0.13f).space(height * 0.02f);
 
         table.row();
 
-        // First row of icon buttons
-        final float iconSize = Math.min(width * 0.24f, height * 0.11f);
+        final float iconSize = Math.min(width * 0.22f, height * 0.1f);
 
-        // Time mode
-        final SoftButton stopwatchButton = new SoftButton(2, "stopwatch_texture");
-        stopwatchButton.addListener(new ChangeListener() {
+        // First row: classic game modes + daily challenge
+        table.add(iconButton(iconSize, "play_saved_texture", "ENDLESS", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                MainMenuScreen.this.game.transitionTo(
+                        new GameScreen(MainMenuScreen.this.game, GameScreen.GAME_MODE_SCORE));
+            }
+        })).space(width * 0.02f);
+
+        table.add(iconButton(iconSize, "stopwatch_texture", "TIME", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 MainMenuScreen.this.game.transitionTo(
                         new GameScreen(MainMenuScreen.this.game, GameScreen.GAME_MODE_TIME));
             }
-        });
-        table.add(stopwatchButton).size(iconSize).space(height * 0.012f);
+        })).space(width * 0.02f);
 
-        // Palette button (buy colors)
-        final SoftButton paletteButton = new SoftButton(3, "palette_texture");
-        paletteButton.addListener(new ChangeListener() {
+        table.add(iconButton(iconSize, "star_texture",
+                LevelProgress.isDailyDone() ? "DAILY OK" : "DAILY", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                MainMenuScreen.this.game.transitionTo(new GameScreen(
+                        MainMenuScreen.this.game, LevelCatalog.dailyLevel(), true));
+            }
+        })).space(width * 0.02f);
+
+        table.row().spaceTop(height * 0.008f);
+
+        // Second row: rewards
+        table.add(iconButton(iconSize, "wheel_texture", "WHEEL", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                showCentered(new WheelDialog(MainMenuScreen.this.game.skin));
+            }
+        })).space(width * 0.02f);
+
+        table.add(iconButton(iconSize, "missions_texture", "MISSIONS", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                showCentered(new DailyDialog(MainMenuScreen.this.game.skin));
+            }
+        })).space(width * 0.02f);
+
+        table.add(iconButton(iconSize, "gift_texture", "GIFT", new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                showCentered(new DailyGiftDialog(MainMenuScreen.this.game.skin));
+            }
+        })).space(width * 0.02f);
+
+        table.row().spaceTop(height * 0.008f);
+
+        // Third row: customization, profile, sound
+        table.add(iconButton(iconSize, "palette_texture", "THEMES", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 // Don't dispose because then it needs to take us to the previous screen
                 MainMenuScreen.this.game.transitionTo(new CustomizeScreen(
                         MainMenuScreen.this.game, MainMenuScreen.this.game.getScreen()), false);
             }
-        });
-        table.add(paletteButton).size(iconSize).space(height * 0.012f);
+        })).space(width * 0.02f);
 
-        // Star button (on GitHub)
-        final SoftButton starButton = new SoftButton(1, "star_texture");
-        starButton.addListener(new ChangeListener() {
+        table.add(iconButton(iconSize, "stats_texture", "PROFILE", new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                Gdx.net.openURI("https://github.com/mohamedelhajri12345-ops/PirateDash/stargazers");
+                MainMenuScreen.this.game.transitionTo(new ProfileScreen(MainMenuScreen.this.game));
             }
-        });
-        table.add(starButton).size(iconSize).space(height * 0.012f);
+        })).space(width * 0.02f);
 
-        table.row();
-
-        // Second row: the Star Puzzle features
-        // Lucky wheel (one free spin per day)
-        final SoftButton wheelButton = new SoftButton(0, "wheel_texture");
-        wheelButton.addListener(new ChangeListener() {
+        final SoftButton soundButton = new SoftButton(3,
+                Klooni.soundsEnabled() ? "sound_on_texture" : "sound_off_texture");
+        soundButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                showCentered(new WheelDialog(MainMenuScreen.this.game.skin));
+                final boolean enabled = Klooni.toggleSound();
+                soundButton.updateImage(enabled ? "sound_on_texture" : "sound_off_texture");
+                if (enabled)
+                    Klooni.startMusic();
+                else
+                    Klooni.stopMusic();
             }
         });
-        table.add(wheelButton).size(iconSize).space(height * 0.012f);
-
-        // Daily missions
-        final SoftButton missionsButton = new SoftButton(1, "missions_texture");
-        missionsButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                showCentered(new DailyDialog(MainMenuScreen.this.game.skin));
-            }
-        });
-        table.add(missionsButton).size(iconSize).space(height * 0.012f);
-
-        // Daily gift
-        final SoftButton giftButton = new SoftButton(2, "gift_texture");
-        giftButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                showCentered(new DailyGiftDialog(MainMenuScreen.this.game.skin));
-            }
-        });
-        table.add(giftButton).size(iconSize).space(height * 0.012f);
+        table.add(iconCell(iconSize, soundButton, "SOUND")).space(width * 0.02f);
 
         table.row();
 
         // Small version footer
         final Label.LabelStyle footerStyle = new Label.LabelStyle();
         footerStyle.font = game.skin.getFont("font_small");
-        final Label footer = new Label("Star Puzzle v1.1  •  Mohamed Elhajri", footerStyle);
+        final Label footer = new Label("Star Puzzle v1.3  •  Mohamed Elhajri", footerStyle);
         footer.setColor(Klooni.theme.foreground.r, Klooni.theme.foreground.g,
                 Klooni.theme.foreground.b, 0.5f);
         table.add(footer).colspan(3).padTop(height * 0.012f);
@@ -173,7 +192,28 @@ public class MainMenuScreen extends InputListener implements Screen {
 
     //endregion
 
-    //region Private methods
+    //region Private helpers
+
+    // An icon button with a small caption below it
+    private Table iconButton(final float iconSize, final String textureName,
+                             final String caption, final ChangeListener listener) {
+        final SoftButton button = new SoftButton(1, textureName);
+        button.addListener(listener);
+        return iconCell(iconSize, button, caption);
+    }
+
+    private Table iconCell(final float iconSize, final SoftButton button, final String caption) {
+        final Table cell = new Table();
+        cell.add(button).size(iconSize).spaceTop(iconSize * 0.08f);
+        cell.row();
+        final Label.LabelStyle captionStyle = new Label.LabelStyle();
+        captionStyle.font = game.skin.getFont("font_small");
+        final Label label = new Label(caption, captionStyle);
+        label.setColor(Klooni.theme.foreground.r, Klooni.theme.foreground.g,
+                Klooni.theme.foreground.b, 0.7f);
+        cell.add(label).padTop(iconSize * 0.05f);
+        return cell;
+    }
 
     private void showCentered(final com.badlogic.gdx.scenes.scene2d.ui.Dialog dialog) {
         dialog.pack();

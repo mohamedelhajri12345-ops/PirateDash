@@ -22,9 +22,13 @@ jobs:
         run: |
           yes | sdkmanager "build-tools;29.0.3" "platforms;android-29" > /dev/null || true
 
-      - name: Build release APK + AAB
+      - name: Run level-system unit tests (1000 levels)
         run: |
           chmod +x gradlew
+          ./gradlew :core:test --no-daemon
+
+      - name: Build release APK + AAB
+        run: |
           ./gradlew :android:assembleRelease :android:bundleRelease --no-daemon
 
       - name: Re-sign APK with v1+v2+v3 for maximum compatibility

@@ -280,6 +280,11 @@ public class Board implements BinSerializable {
         cells[y][x].set(colorIndex);
     }
 
+    // Star Puzzle: true when the given cell is empty (level pre-fill support)
+    public boolean isEmpty(final int x, final int y) {
+        return cells[y][x].isEmpty();
+    }
+
     // Star Puzzle: screen coordinates of the center of the given cell
     public Vector2 cellCenter(final int x, final int y) {
         return new Vector2(pos.x + (x + 0.5f) * cellSize, pos.y + (y + 0.5f) * cellSize);

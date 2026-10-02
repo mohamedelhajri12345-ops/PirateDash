@@ -35,6 +35,7 @@ import dev.lonami.klooni.Klooni;
 import dev.lonami.klooni.actors.Band;
 import dev.lonami.klooni.actors.SoftButton;
 import dev.lonami.klooni.game.BaseScorer;
+import dev.lonami.klooni.game.LevelDefinition;
 import dev.lonami.klooni.game.GameLayout;
 
 // The pause stage is not a whole screen but rather a menu
@@ -54,15 +55,23 @@ class PauseMenuStage extends Stage {
     private final BaseScorer scorer;
     private final SoftButton playButton;
     private final SoftButton customButton; // Customize & "Shut down"
-
+    private final int gameMode;
+    private final LevelDefinition level; // null outside the adventure mode
     //endregion
 
     //region Constructor
 
     // We need the score to save the maximum score if a new record was beaten
     PauseMenuStage(final GameLayout layout, final Klooni game, final BaseScorer scorer, final int gameMode) {
+        this(layout, game, scorer, gameMode, null);
+    }
+
+    PauseMenuStage(final GameLayout layout, final Klooni game, final BaseScorer scorer,
+                   final int gameMode, final LevelDefinition level) {
         this.game = game;
         this.scorer = scorer;
+        this.gameMode = gameMode;
+        this.level = level;
 
         shapeRenderer = new ShapeRenderer(20); // 20 vertex seems to be enough for a rectangle
 
@@ -81,7 +90,10 @@ class PauseMenuStage extends Stage {
 
         homeButton.addListener(new ChangeListener() {
             public void changed(ChangeEvent event, Actor actor) {
-                game.transitionTo(new MainMenuScreen(game));
+                if (level != null)
+                    game.transitionTo(new WorldMapScreen(game));
+                else
+                    game.transitionTo(new MainMenuScreen(game));
             }
         });
 
@@ -93,7 +105,10 @@ class PauseMenuStage extends Stage {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 // false, don't load the saved game state; we do want to replay
-                game.transitionTo(new GameScreen(game, gameMode, false));
+                if (level != null)
+                    game.transitionTo(new GameScreen(game, level));
+                else
+                    game.transitionTo(new GameScreen(game, gameMode, false));
             }
         });
 

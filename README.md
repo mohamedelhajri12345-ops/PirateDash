@@ -15,6 +15,7 @@
 2. ثيم افتراضي جديد "النجوم": سماء ليلية زرقاء بنجوم ذهبية
 3. معرّف تطبيق جديد: com.mohamedelhajri.starpuzzle
 4. خط بناء تلقائي عبر GitHub Actions ينتج APK + AAB موقّعين مع كل تحديث
+5. **World Puzzle Adventure (v1.3):** 1000 مرحلة / 10 عوالم / خريطة عوالم / نجوم / تحدي يومي / إنجازات وإحصائيات — انظر LEVEL_SYSTEM.md و ARCHITECTURE.md
 
 ## 🛠️ البناء
 ```bash

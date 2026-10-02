@@ -30,7 +30,7 @@ public class SkinLoader {
             "share", "sound_on", "sound_off", "snap_on", "snap_off", "issues", "credits",
             "web", "back", "ok", "cancel", "power_off", "effects",
             "wheel", "missions", "vibrate_on", "vibrate_off",
-            "logo", "gift", "pixel"
+            "logo", "gift", "pixel", "stats"
     };
 
     private final static float bestMultiplier;

@@ -52,6 +52,9 @@ public class Piece {
     // powers when placed. They use color indexes above the normal
     // theme colors so they also survive save/load automatically.
     public static final int SPECIAL_NONE = 0;
+
+    // Star Puzzle: chance of special pieces; adventure levels can raise it
+    public static int specialChance = 5;
     public static final int SPECIAL_STAR = 100;
     public static final int SPECIAL_BOMB = 101;
     public static final int SPECIAL_LIGHTNING = 102;
@@ -139,7 +142,7 @@ public class Piece {
     // Generates a random piece with always the same color for the generated shape.
     // Star Puzzle: 5% chance of a special piece (star, bomb or lightning).
     public static Piece random() {
-        if (MathUtils.random(99) < 5) {
+        if (MathUtils.random(99) < specialChance) {
             switch (MathUtils.random(2)) {
                 case 0: return new Piece(SPECIAL_STAR);
                 case 1: return new Piece(SPECIAL_BOMB);
