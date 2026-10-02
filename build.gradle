@@ -2,7 +2,7 @@ buildscript {
     repositories {
         mavenLocal()
         mavenCentral()
-        gradle { url "https://plugins.gradle.org/m2/" }
+        maven { url "https://plugins.gradle.org/m2/" }
         google()
     }
     dependencies {
