@@ -76,7 +76,7 @@ public class MainMenuScreen extends InputListener implements Screen {
         starButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                Gdx.net.openURI("https://github.com/LonamiWebs/Klooni1010/stargazers");
+                Gdx.net.openURI("https://github.com/mohamedelhajri12345-ops/PirateDash/stargazers");
             }
         });
         table.add(starButton).space(16);
@@ -102,6 +102,28 @@ public class MainMenuScreen extends InputListener implements Screen {
             }
         });
         table.add(paletteButton).space(16);
+
+        table.row();
+
+        // Star Puzzle: lucky wheel (one free spin per day)
+        final SoftButton wheelButton = new SoftButton(0, "wheel_texture");
+        wheelButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                new WheelDialog(game.skin).show(stage).centerWindow();
+            }
+        });
+        table.add(wheelButton).space(16);
+
+        // Star Puzzle: daily missions
+        final SoftButton missionsButton = new SoftButton(1, "missions_texture");
+        missionsButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                new DailyDialog(game.skin).show(stage).centerWindow();
+            }
+        });
+        table.add(missionsButton).space(16);
     }
 
     //endregion

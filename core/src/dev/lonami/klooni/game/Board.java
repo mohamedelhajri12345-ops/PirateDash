@@ -235,6 +235,56 @@ public class Board implements BinSerializable {
         return clearCount;
     }
 
+    // Star Puzzle: clears a square area of (2*radius + 1) cells centered on (x, y).
+    // Returns the amount of cells that were cleared.
+    public int clearArea(final int x, final int y, final int radius, final IEffectFactory effect) {
+        int cleared = 0;
+        final int minX = Math.max(0, x - radius), maxX = Math.min(cellCount - 1, x + radius);
+        final int minY = Math.max(0, y - radius), maxY = Math.min(cellCount - 1, y + radius);
+
+        for (int i = minY; i <= maxY; ++i) {
+            for (int j = minX; j <= maxX; ++j) {
+                if (!cells[i][j].isEmpty()) {
+                    effects.add(effect.create(cells[i][j], lastPutPiecePos));
+                    cells[i][j].set(-1);
+                    cleared++;
+                }
+            }
+        }
+        return cleared;
+    }
+
+    // Star Puzzle: clears the whole row and column crossing on (x, y).
+    // Returns the amount of cells that were cleared.
+    public int clearCross(final int x, final int y, final IEffectFactory effect) {
+        int cleared = 0;
+        for (int j = 0; j < cellCount; ++j) {
+            if (!cells[y][j].isEmpty()) {
+                effects.add(effect.create(cells[y][j], lastPutPiecePos));
+                cells[y][j].set(-1);
+                cleared++;
+            }
+        }
+        for (int i = 0; i < cellCount; ++i) {
+            if (!cells[i][x].isEmpty()) {
+                effects.add(effect.create(cells[i][x], lastPutPiecePos));
+                cells[i][x].set(-1);
+                cleared++;
+            }
+        }
+        return cleared;
+    }
+
+    // Star Puzzle: converts a special cell (star) back to a normal colored cell
+    public void setCell(final int x, final int y, final int colorIndex) {
+        cells[y][x].set(colorIndex);
+    }
+
+    // Star Puzzle: screen coordinates of the center of the given cell
+    public Vector2 cellCenter(final int x, final int y) {
+        return new Vector2(pos.x + (x + 0.5f) * cellSize, pos.y + (y + 0.5f) * cellSize);
+    }
+
     public void clearAll(final int clearFromX, final int clearFromY, final IEffectFactory effect) {
         final Vector2 culprit = cells[clearFromY][clearFromX].pos;
 

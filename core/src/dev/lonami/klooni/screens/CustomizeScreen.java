@@ -110,10 +110,33 @@ class CustomizeScreen implements Screen {
                 soundButton.image = CustomizeScreen.this.game.skin.getDrawable(
                         enabled ? "sound_on_texture" : "sound_off_texture");
 
+                if (enabled)
+                    Klooni.startMusic();
+                else
+                    Klooni.stopMusic();
+
                 buyBand.setTempText("sound " + (enabled ? "on" : "off"));
             }
         });
         optionsGroup.addActor(soundButton);
+
+        // Star Puzzle: vibration on/off
+        final SoftButton vibrateButton = new SoftButton(
+                3, Klooni.vibrationEnabled() ? "vibrate_on_texture" : "vibrate_off_texture");
+        vibrateButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                final boolean enabled = Klooni.toggleVibration();
+                vibrateButton.image = CustomizeScreen.this.game.skin.getDrawable(
+                        enabled ? "vibrate_on_texture" : "vibrate_off_texture");
+
+                if (enabled)
+                    Klooni.vibrate(60);
+
+                buyBand.setTempText("vibration " + (enabled ? "on" : "off"));
+            }
+        });
+        optionsGroup.addActor(vibrateButton);
 
         // Toggle the current shop (themes or effects)
         toggleShopButton = new SoftButton(2, "effects_texture");
@@ -152,7 +175,7 @@ class CustomizeScreen implements Screen {
         issuesButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                Gdx.net.openURI("https://github.com/LonamiWebs/Klooni1010/issues");
+                Gdx.net.openURI("https://github.com/mohamedelhajri12345-ops/PirateDash/issues");
             }
         });
         optionsGroup.addActor(issuesButton);

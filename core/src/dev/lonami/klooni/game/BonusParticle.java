@@ -33,7 +33,11 @@ class BonusParticle {
     private final static float SPEED = 1f;
 
     BonusParticle(final Vector2 pos, final int score, final Label.LabelStyle style) {
-        label = new Label("+" + score, style);
+        this(pos, "+" + score, style);
+    }
+
+    BonusParticle(final Vector2 pos, final String text, final Label.LabelStyle style) {
+        label = new Label(text, style);
         label.setBounds(pos.x, pos.y, 0, 0);
     }
 

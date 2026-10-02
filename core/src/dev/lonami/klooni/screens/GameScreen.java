@@ -25,6 +25,8 @@ import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Matrix4;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -35,6 +37,7 @@ import dev.lonami.klooni.game.BaseScorer;
 import dev.lonami.klooni.game.Board;
 import dev.lonami.klooni.game.BonusParticleHandler;
 import dev.lonami.klooni.game.GameLayout;
+import dev.lonami.klooni.game.Missions;
 import dev.lonami.klooni.game.Piece;
 import dev.lonami.klooni.game.PieceHolder;
 import dev.lonami.klooni.game.Scorer;
@@ -64,6 +67,12 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
     private final int gameMode;
 
     private boolean gameOverDone;
+
+    // Star Puzzle juice
+    private int combo;
+    private float shakeTime;
+    private final Matrix4 shakeMatrix = new Matrix4();
+    private int lastMissionScore;
 
     // The last score that was saved when adding the money.
     // We use this so we don't add the same old score to the money twice,
@@ -145,6 +154,7 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
     private void doGameOver(final String gameOverReason) {
         if (!gameOverDone) {
             gameOverDone = true;
+            Klooni.vibrate(200);
 
             saveMoney();
             holder.enabled = false;
@@ -195,6 +205,20 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
 
         batch.begin();
 
+        // Star Puzzle: screen shake while there's shake time left
+        if (shakeTime > 0f) {
+            shakeTime -= Gdx.graphics.getDeltaTime();
+            final float amplitude = Math.max(0f, shakeTime) * 90f;
+            shakeMatrix.setToTranslation(
+                    MathUtils.random(-amplitude, amplitude),
+                    MathUtils.random(-amplitude, amplitude), 0f);
+            batch.setTransformMatrix(shakeMatrix);
+        } else if (shakeMatrix.val[Matrix4.M03] != 0f || shakeMatrix.val[Matrix4.M13] != 0f) {
+            // The transform matrix persists between frames, so reset it once
+            shakeMatrix.idt();
+            batch.setTransformMatrix(shakeMatrix);
+        }
+
         scorer.draw(batch);
         board.draw(batch);
         holder.update();
@@ -239,13 +263,42 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
 
         if (result.onBoard) {
             scorer.addPieceScore(result.area);
-            int bonus = scorer.addBoardScore(board.clearComplete(game.effect), board.cellCount);
-            if (bonus > 0) {
+
+            // Star Puzzle: handle special pieces (star / bomb / lightning)
+            if (result.pieceColorIndex >= Piece.SPECIAL_STAR)
+                handleSpecialPiece(result);
+
+            final int cleared = board.clearComplete(game.effect);
+            final int bonus = scorer.addBoardScore(cleared, board.cellCount);
+            if (cleared > 0) {
+                // Star Puzzle: combo system — consecutive clearing pieces
+                combo++;
+                if (combo >= 2) {
+                    final int comboBonus = bonus * (combo - 1);
+                    scorer.addPieceScore(comboBonus);
+                    bonusParticleHandler.addMessage(result.pieceCenter,
+                            "COMBO x" + combo + "  +" + comboBonus);
+                    Klooni.playComboSound(combo);
+                    Klooni.vibrate(60);
+                }
+
+                shakeTime = Math.min(0.12f + cleared * 0.08f, 0.5f);
                 bonusParticleHandler.addBonus(result.pieceCenter, bonus);
                 if (Klooni.soundsEnabled()) {
+                    Klooni.playLineClearSound();
                     game.playEffectSound();
                 }
+                Klooni.vibrate(35);
+
+                Missions.onLinesCleared(cleared);
+            } else {
+                combo = 0;
             }
+
+            // Star Puzzle: daily missions progress
+            Missions.onPiecesPlaced(result.area);
+            Missions.onScore(scorer.getCurrentScore(), lastMissionScore);
+            lastMissionScore = scorer.getCurrentScore();
 
             // After the piece was put, check if it's game over
             if (isGameOver()) {
@@ -293,6 +346,46 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
     @Override
     public boolean scrolled(int amount) {
         return false;
+    }
+
+    //endregion
+
+    //region Star Puzzle specials
+
+    private void handleSpecialPiece(final PieceHolder.DropResult result) {
+        // Board coordinates of the dropped 1x1 piece
+        final int x = MathUtils.round((result.pieceCenter.x - board.pos.x) / board.cellSize - 0.5f);
+        final int y = MathUtils.round((result.pieceCenter.y - board.pos.y) / board.cellSize - 0.5f);
+
+        switch (result.pieceColorIndex) {
+            case Piece.SPECIAL_STAR: {
+                // +150 points, the cell turns into a normal colored cell
+                board.setCell(x, y, 0);
+                scorer.addPieceScore(150);
+                bonusParticleHandler.addMessage(board.cellCenter(x, y), "+150");
+                Klooni.playStarSound();
+                Klooni.vibrate(40);
+                break;
+            }
+            case Piece.SPECIAL_BOMB: {
+                final int clearedCells = board.clearArea(x, y, 1, game.effect);
+                scorer.addPieceScore(clearedCells * 2);
+                bonusParticleHandler.addMessage(board.cellCenter(x, y), "BOOM!");
+                Klooni.playBombSound();
+                shakeTime = 0.55f;
+                Klooni.vibrate(90);
+                break;
+            }
+            case Piece.SPECIAL_LIGHTNING: {
+                final int clearedCells = board.clearCross(x, y, game.effect);
+                scorer.addPieceScore(clearedCells * 2);
+                bonusParticleHandler.addMessage(board.cellCenter(x, y), "ZAP!");
+                Klooni.playComboSound(3);
+                shakeTime = 0.4f;
+                Klooni.vibrate(70);
+                break;
+            }
+        }
     }
 
     //endregion

@@ -41,6 +41,11 @@ public class BonusParticleHandler {
         particles.add(new BonusParticle(pos, score, labelStyle));
     }
 
+    // Star Puzzle: floating message (combos, specials...)
+    public void addMessage(final Vector2 pos, final String text) {
+        particles.add(new BonusParticle(pos, text, labelStyle));
+    }
+
     public void run(final Batch batch) {
         BonusParticle particle;
         Iterator<BonusParticle> iterator = particles.iterator();

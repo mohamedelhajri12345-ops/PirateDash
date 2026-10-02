@@ -18,6 +18,7 @@
 package dev.lonami.klooni.game;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
@@ -28,6 +29,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 import dev.lonami.klooni.Klooni;
+import dev.lonami.klooni.SkinLoader;
 
 // Represents a piece with an arbitrary shape, which
 // can be either rectangles (squares too) or L shaped
@@ -45,6 +47,18 @@ public class Piece {
 
     // Default arbitrary value
     float cellSize = 10f;
+
+    // Star Puzzle special pieces. They are 1x1 and have unique
+    // powers when placed. They use color indexes above the normal
+    // theme colors so they also survive save/load automatically.
+    public static final int SPECIAL_NONE = 0;
+    public static final int SPECIAL_STAR = 100;
+    public static final int SPECIAL_BOMB = 101;
+    public static final int SPECIAL_LIGHTNING = 102;
+
+    private static Texture starCellTexture;
+    private static Texture bombCellTexture;
+    private static Texture lightningCellTexture;
 
     //endregion
 
@@ -108,12 +122,30 @@ public class Piece {
         }
     }
 
+    // Special piece constructor: always a 1x1 cell
+    private Piece(final int specialColorIndex) {
+        this.colorIndex = specialColorIndex;
+        pos = new Vector2();
+        rotation = 0;
+        cellCols = cellRows = 1;
+        shape = new boolean[1][1];
+        shape[0][0] = true;
+    }
+
     //endregion
 
     //region Static methods
 
-    // Generates a random piece with always the same color for the generated shape
+    // Generates a random piece with always the same color for the generated shape.
+    // Star Puzzle: 5% chance of a special piece (star, bomb or lightning).
     public static Piece random() {
+        if (MathUtils.random(99) < 5) {
+            switch (MathUtils.random(2)) {
+                case 0: return new Piece(SPECIAL_STAR);
+                case 1: return new Piece(SPECIAL_BOMB);
+                default: return new Piece(SPECIAL_LIGHTNING);
+            }
+        }
         // 9 pieces [0…8]; 4 possible rotations [0…3]
         return fromIndex(MathUtils.random(8), MathUtils.random(4));
     }
@@ -143,6 +175,12 @@ public class Piece {
                 return new Piece(2, rotateCount, colorIndex);
             case 8:
                 return new Piece(3, rotateCount, colorIndex);
+
+            // Star Puzzle special pieces (only when loading a saved game)
+            case SPECIAL_STAR:
+            case SPECIAL_BOMB:
+            case SPECIAL_LIGHTNING:
+                return new Piece(colorIndex);
         }
         throw new RuntimeException("Random function is broken.");
     }
@@ -152,11 +190,32 @@ public class Piece {
     //region Package local methods
 
     void draw(SpriteBatch batch) {
+        // Star Puzzle: special pieces use their own pre-colored textures
+        if (colorIndex >= SPECIAL_STAR) {
+            batch.setColor(Color.WHITE);
+            batch.draw(getSpecialTexture(), pos.x, pos.y, cellSize, cellSize);
+            return;
+        }
+
         final Color c = Klooni.theme.getCellColor(colorIndex);
         for (int i = 0; i < cellRows; ++i)
             for (int j = 0; j < cellCols; ++j)
                 if (shape[i][j])
                     Cell.draw(c, batch, pos.x + j * cellSize, pos.y + i * cellSize, cellSize);
+    }
+
+    private Texture getSpecialTexture() {
+        // Lazily loaded once; textures live for the whole app lifetime
+        if (starCellTexture == null) {
+            starCellTexture = SkinLoader.loadPng("star_cell");
+            bombCellTexture = SkinLoader.loadPng("bomb_cell");
+            lightningCellTexture = SkinLoader.loadPng("lightning_cell");
+        }
+        switch (colorIndex) {
+            case SPECIAL_STAR: return starCellTexture;
+            case SPECIAL_BOMB: return bombCellTexture;
+            default: return lightningCellTexture;
+        }
     }
 
     // Calculates the rectangle of the piece with screen coordinates

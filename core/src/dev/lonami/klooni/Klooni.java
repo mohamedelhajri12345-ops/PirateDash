@@ -22,6 +22,7 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.math.MathUtils;
@@ -58,6 +59,14 @@ public class Klooni extends Game {
 
     private Map<String, Sound> effectSounds;
     public Skin skin;
+
+    // Star Puzzle juice: extra sounds and background music
+    private static Sound lineClearSound;
+    private static Sound comboSound;
+    private static Sound coinSound;
+    private static Sound bombSound;
+    private static Sound starSound;
+    private static Music music;
 
     public final ShareChallenge shareChallenge;
 
@@ -105,6 +114,22 @@ public class Klooni extends Game {
                 effect = e;
             }
         }
+
+        // Star Puzzle sounds and music
+        lineClearSound = loadSound("line_clear.wav");
+        comboSound = loadSound("combo.wav");
+        coinSound = loadSound("coin.wav");
+        bombSound = loadSound("bomb.wav");
+        starSound = loadSound("star_piece.wav");
+
+        music = Gdx.audio.newMusic(Gdx.files.internal("sound/music.wav"));
+        music.setLooping(true);
+        music.setVolume(0.45f);
+        startMusic();
+    }
+
+    private static Sound loadSound(final String name) {
+        return Gdx.audio.newSound(Gdx.files.internal("sound/" + name));
     }
 
     //endregion
@@ -135,6 +160,12 @@ public class Klooni extends Game {
             }
             effectSounds = null;
         }
+        if (lineClearSound != null) lineClearSound.dispose();
+        if (comboSound != null) comboSound.dispose();
+        if (coinSound != null) coinSound.dispose();
+        if (bombSound != null) bombSound.dispose();
+        if (starSound != null) starSound.dispose();
+        if (music != null) music.dispose();
     }
 
     //endregion
@@ -152,6 +183,60 @@ public class Klooni extends Game {
     public void playEffectSound() {
         effectSounds.get(effect.getName())
                 .play(MathUtils.random(0.7f, 1f), MathUtils.random(0.8f, 1.2f), 0);
+    }
+
+    // endregion
+
+    // region Star Puzzle juice
+
+    public static void playLineClearSound() {
+        if (soundsEnabled())
+            lineClearSound.play(MathUtils.random(0.8f, 1f), MathUtils.random(0.95f, 1.05f), 0);
+    }
+
+    public static void playComboSound(final int combo) {
+        if (soundsEnabled())
+            comboSound.play(MathUtils.random(0.8f, 1f), 0.9f + combo * 0.06f, 0);
+    }
+
+    public static void playCoinSound() {
+        if (soundsEnabled())
+            coinSound.play(1, MathUtils.random(0.95f, 1.05f), 0);
+    }
+
+    public static void playBombSound() {
+        if (soundsEnabled())
+            bombSound.play(1, MathUtils.random(0.95f, 1.05f), 0);
+    }
+
+    public static void playStarSound() {
+        if (soundsEnabled())
+            starSound.play(1, MathUtils.random(0.95f, 1.05f), 0);
+    }
+
+    public static void startMusic() {
+        if (music != null && soundsEnabled() && !music.isPlaying())
+            music.play();
+    }
+
+    public static void stopMusic() {
+        if (music != null && music.isPlaying())
+            music.stop();
+    }
+
+    public static boolean vibrationEnabled() {
+        return prefs.getBoolean("vibration", true);
+    }
+
+    public static boolean toggleVibration() {
+        final boolean result = !vibrationEnabled();
+        prefs.putBoolean("vibration", result).flush();
+        return result;
+    }
+
+    public static void vibrate(final int milliseconds) {
+        if (vibrationEnabled())
+            Gdx.input.vibrate(milliseconds);
     }
 
     // endregion
@@ -274,6 +359,11 @@ public class Klooni extends Game {
     // Money related
     public static void addMoneyFromScore(int score) {
         setMoney(getRealMoney() + score * SCORE_TO_MONEY);
+    }
+
+    // Star Puzzle: direct coin grants (wheel, missions...)
+    public static void addMoney(final int amount) {
+        setMoney(getRealMoney() + amount);
     }
 
     private static void setMoney(float money) {

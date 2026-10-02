@@ -212,7 +212,9 @@ public class PieceHolder implements BinSerializable {
                     pieceDropSound.play(1, pitch, 0);
                 }
 
-                result = new DropResult(calculateHeldPieceArea(), calculateHeldPieceCenter());
+                result = new DropResult(
+                        calculateHeldPieceArea(), calculateHeldPieceCenter(),
+                        pieces[heldPiece].colorIndex);
                 pieces[heldPiece] = null;
             } else {
                 if (Klooni.soundsEnabled())
@@ -324,17 +326,23 @@ public class PieceHolder implements BinSerializable {
         public final int area;
         public final Vector2 pieceCenter;
 
+        // Star Puzzle: color index of the dropped piece, so special
+        // pieces (>= Piece.SPECIAL_STAR) can be handled by the game screen
+        public final int pieceColorIndex;
+
         DropResult(final boolean dropped) {
             this.dropped = dropped;
             onBoard = false;
             area = 0;
             pieceCenter = null;
+            pieceColorIndex = -1;
         }
 
-        DropResult(final int area, final Vector2 pieceCenter) {
+        DropResult(final int area, final Vector2 pieceCenter, final int pieceColorIndex) {
             dropped = onBoard = true;
             this.area = area;
             this.pieceCenter = pieceCenter;
+            this.pieceColorIndex = pieceColorIndex;
         }
     }
 
