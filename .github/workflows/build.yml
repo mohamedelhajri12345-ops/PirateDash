@@ -27,6 +27,15 @@ jobs:
           chmod +x gradlew
           ./gradlew :android:assembleRelease :android:bundleRelease --no-daemon
 
+      - name: Re-sign APK with v1+v2+v3 for maximum compatibility
+        run: |
+          APK=$(ls android/build/outputs/apk/release/*.apk)
+          $ANDROID_HOME/build-tools/29.0.3/apksigner sign \
+            --ks android/starpuzzle.keystore --ks-key-alias piratedash \
+            --ks-pass pass:piratedash2026 --key-pass pass:piratedash2026 \
+            --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
+            "$APK"
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
