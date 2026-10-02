@@ -3,41 +3,74 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d1b2a">
 <title>سباق القراصنة - Pirate Dash</title>
 <link rel="stylesheet" href="style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🏴‍☠️</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>⚓</text></svg>">
 </head>
 <body>
 <div id="wrap">
   <canvas id="game"></canvas>
 
-  <div id="hud">
+  <div id="hud" class="hidden">
     <div id="scoreBox">
       <span id="score">0</span>
       <span id="best">🏆 0</span>
     </div>
-    <div id="coinBox">🪙 <span id="coins">0</span></div>
+    <div id="rightBox">
+      <div id="coinBox">🪙 <span id="coins">0</span></div>
+      <div id="gemBox">💎 <span id="gems">0</span></div>
+      <div id="meatBox">🍖 <span id="meat">0/5</span></div>
+    </div>
+    <div id="pows"></div>
   </div>
 
+  <button id="pauseBtn" class="iconbtn hidden">⏸️</button>
+  <button id="muteBtn" class="iconbtn hidden">🔊</button>
+
   <div id="menu" class="panel">
-    <h1>🏴‍☠️ سباق القراصنة</h1>
-    <p>اجرِ على سطح السفينة، اجمع الذهب، وتفادَ العوائق!</p>
-    <div class="controls">
-      <span>⬅️➡️ تغيير المسار</span>
-      <span>⬆️ قفز</span>
-      <span>⬇️ انزلاق</span>
+    <h1>⚓ سباق القراصنة</h1>
+    <p class="sub">ابحر مع الطاقم، اجمع الذهب والجواهر، وتفادَ العوائق!</p>
+
+    <div id="charRow">
+      <button id="charPrev" class="charArrow">›</button>
+      <div id="charBox">
+        <canvas id="charPreview" width="120" height="150"></canvas>
+        <div id="charName">القبطان سليم</div>
+        <div id="charStatus">مفتوح</div>
+      </div>
+      <button id="charNext" class="charArrow">‹</button>
     </div>
+    <div id="statsRow">
+      <span>🏆 <b id="menuBest">0</b></span>
+      <span>🪙 <b id="menuBank">0</b></span>
+      <span>💎 <b id="menuGems">0</b></span>
+    </div>
+
+    <div id="missions">
+      <h3>المهام</h3>
+      <div id="missionList"></div>
+    </div>
+
     <button id="startBtn" class="btn">ابدأ الرحلة</button>
   </div>
 
   <div id="over" class="panel hidden">
-    <h1 id="overTitle">💰 سقط القبطان!</h1>
+    <h1 id="overTitle">⚓ سقط البحّار!</h1>
     <p id="finalScore"></p>
     <p id="finalCoins"></p>
+    <button id="reviveBtn" class="btn hidden">⚓ انعش بـ 5 💎</button>
     <button id="retryBtn" class="btn">رحلة جديدة</button>
+    <button id="menuBtn" class="btn secondary">القائمة الرئيسية</button>
   </div>
 
-  <div id="touchHint">اسحب للتحرك ⬅️ ➡️</div>
+  <div id="pause" class="panel hidden">
+    <h1>⏸️ استراحة بحرية</h1>
+    <button id="resumeBtn" class="btn">أكمل الرحلة</button>
+    <button id="quitBtn" class="btn secondary">القائمة الرئيسية</button>
+  </div>
+
+  <div id="touchHint" class="hidden2">اسحب للتحرك ⬅️ ➡️ · اسحب لأعلى للقفز ⬆️</div>
 </div>
 <script src="game.js"></script>
 </body>
