@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>سباق القراصنة - Pirate Dash</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🏴‍☠️</text></svg>">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+
+  <div id="hud">
+    <div id="scoreBox">
+      <span id="score">0</span>
+      <span id="best">🏆 0</span>
+    </div>
+    <div id="coinBox">🪙 <span id="coins">0</span></div>
+  </div>
+
+  <div id="menu" class="panel">
+    <h1>🏴‍☠️ سباق القراصنة</h1>
+    <p>اجرِ على سطح السفينة، اجمع الذهب، وتفادَ العوائق!</p>
+    <div class="controls">
+      <span>⬅️➡️ تغيير المسار</span>
+      <span>⬆️ قفز</span>
+      <span>⬇️ انزلاق</span>
+    </div>
+    <button id="startBtn" class="btn">ابدأ الرحلة</button>
+  </div>
+
+  <div id="over" class="panel hidden">
+    <h1 id="overTitle">💰 سقط القبطان!</h1>
+    <p id="finalScore"></p>
+    <p id="finalCoins"></p>
+    <button id="retryBtn" class="btn">رحلة جديدة</button>
+  </div>
+
+  <div id="touchHint">اسحب للتحرك ⬅️ ➡️</div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
