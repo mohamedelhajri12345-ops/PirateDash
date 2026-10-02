@@ -153,7 +153,8 @@ public class WorldMapScreen extends InputListener implements Screen {
         final float height = Gdx.graphics.getHeight();
         final float nodeSize = Math.min(width * 0.15f, height * 0.09f);
 
-        final Texture starTexture = SkinLoader.loadPng("star.png");
+        final com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable starDrawable =
+                (com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable) game.skin.getDrawable("star_texture");
         final int first = (currentWorld - 1) * LevelCatalog.LEVELS_PER_WORLD;
 
         for (int i = 0; i < LevelCatalog.LEVELS_PER_WORLD; ++i) {
@@ -180,7 +181,7 @@ public class WorldMapScreen extends InputListener implements Screen {
             node.row();
             final Table starStrip = new Table();
             for (int s = 0; s < 3; ++s) {
-                final Image star = new Image(starTexture);
+                final Image star = new Image(starDrawable);
                 if (s < stars)
                     star.setColor(1f, 0.84f, 0.1f, 1f);
                 else

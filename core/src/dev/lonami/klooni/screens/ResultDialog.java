@@ -58,11 +58,10 @@ class ResultDialog extends Dialog {
 
         // Stars row: earned stars shine gold, the rest stay dim
         getContentTable().row();
-        final Texture starTexture = SkinLoader.loadPng("star.png");
         final float starSize = Math.min(
                 Gdx.graphics.getWidth() * 0.16f, Gdx.graphics.getHeight() * 0.1f);
         for (int i = 0; i < 3; ++i) {
-            final Image star = new Image(starTexture);
+            final Image star = new Image(dev.lonami.klooni.Theme.skin.getDrawable("star_texture"));
             if (won && i < stars)
                 star.setColor(1f, 0.84f, 0.1f, 1f);
             else
