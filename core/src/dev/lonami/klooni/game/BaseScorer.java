@@ -136,10 +136,22 @@ public abstract class BaseScorer implements BinSerializable {
     abstract public void saveScore();
 
     public void draw(SpriteBatch batch) {
-        // If we beat a new record, the cup color will linear interpolate to the high score color
+        // Translucent panel behind the whole HUD
+        batch.setColor(0f, 0f, 0f, 0.22f);
+        batch.draw(panelTexture, hudArea.x, hudArea.y, hudArea.width, hudArea.height);
+        batch.setColor(1f, 1f, 1f, 1f);
+
+        // Cup pulses when we're beating the record
+        float pulse = 1f;
+        if (isNewRecord())
+            pulse = 1.06f + 0.05f * (float) Math.sin((double) System.nanoTime() * 1e-8);
+
         cupColor.lerp(isNewRecord() ? Klooni.theme.highScore : Klooni.theme.currentScore, 0.05f);
         batch.setColor(cupColor);
-        batch.draw(cupTexture, cupArea.x, cupArea.y, cupArea.width, cupArea.height);
+        batch.draw(cupTexture,
+                cupArea.x - (cupArea.width * pulse - cupArea.width) * 0.5f,
+                cupArea.y - (cupArea.height * pulse - cupArea.height) * 0.5f,
+                cupArea.width * pulse, cupArea.height * pulse);
 
         int roundShown = MathUtils.round(shownScore);
         if (roundShown != currentScore) {
@@ -147,11 +159,24 @@ public abstract class BaseScorer implements BinSerializable {
             currentScoreLabel.setText(Integer.toString(MathUtils.round(shownScore)));
         }
 
+        // Captions in a soft translucent tone
+        scoreCaption.setColor(Klooni.theme.foreground.r, Klooni.theme.foreground.g,
+                Klooni.theme.foreground.b, 0.55f);
+        scoreCaption.draw(batch, 1f);
+        bestCaption.setColor(Klooni.theme.foreground.r, Klooni.theme.foreground.g,
+                Klooni.theme.foreground.b, 0.55f);
+        bestCaption.draw(batch, 1f);
+
         currentScoreLabel.setColor(Klooni.theme.currentScore);
         currentScoreLabel.draw(batch, 1f);
 
         highScoreLabel.setColor(Klooni.theme.highScore);
         highScoreLabel.draw(batch, 1f);
+    }
+
+    // Star Puzzle: public record check for celebrations
+    public boolean isRecord() {
+        return isNewRecord();
     }
 
     //endregion
