@@ -79,6 +79,10 @@ public class SkinLoader {
     }
 
     public static Texture loadPng(String name) {
+        // Star Puzzle fix: callers pass names with and without the ".png"
+        // extension; always add it so no texture ever fails to load.
+        if (!name.endsWith(".png"))
+            name += ".png";
         final String filename = "ui/x" + bestMultiplier + "/" + name;
         return new Texture(Gdx.files.internal(filename));
     }
