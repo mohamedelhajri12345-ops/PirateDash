@@ -12,35 +12,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 8
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '8'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-
-      - name: Sync game files into Android assets
+      - name: Install Android SDK components
         run: |
-          mkdir -p android/app/src/main/assets/www
-          cp index.html style.css game.js android/app/src/main/assets/www/
+          yes | sdkmanager "build-tools;29.0.3" "platforms;android-29" > /dev/null || true
 
       - name: Build release APK + AAB
         run: |
-          cd android
-          gradle assembleRelease bundleRelease --no-daemon
+          chmod +x gradlew
+          ./gradlew :android:assembleRelease :android:bundleRelease --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PirateDash-APK
-          path: android/app/build/outputs/apk/release/*.apk
+          name: StarPuzzle-APK
+          path: android/build/outputs/apk/release/*.apk
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: PirateDash-AAB
-          path: android/app/build/outputs/bundle/release/*.aab
+          name: StarPuzzle-AAB
+          path: android/build/outputs/bundle/release/*.aab
