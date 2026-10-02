@@ -40,6 +40,11 @@ public class DailyDialog extends Dialog {
                 "Clear lines", "Place piece cells", "Score points"
         };
 
+        // Current coin balance on top
+        final Label coinsLabel = new Label("Coins: " + Klooni.getMoney(), skin);
+        getContentTable().add(coinsLabel).padBottom(10);
+        getContentTable().row();
+
         for (int i = 0; i < 3; ++i) {
             final int index = i;
 

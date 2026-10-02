@@ -17,6 +17,7 @@
 */
 package dev.lonami.klooni.game;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
@@ -154,7 +155,14 @@ public class TimeScorer extends BaseScorer implements BinSerializable {
 
         int timeLeft = pausedTimeLeft < 0 ? getTimeLeft() : pausedTimeLeft;
         timeLeftLabel.setText(Integer.toString(timeLeft));
-        timeLeftLabel.setColor(Klooni.theme.currentScore);
+
+        if (timeLeft <= 10) {
+            // Urgent red pulse for the last seconds
+            final float pulse = 0.5f + 0.5f * (float) Math.sin((double) System.nanoTime() * 1.5e-8);
+            timeLeftLabel.setColor(1f, 0.25f + 0.35f * pulse, 0.2f, 0.6f + 0.4f * pulse);
+        } else {
+            timeLeftLabel.setColor(Klooni.theme.currentScore);
+        }
         timeLeftLabel.draw(batch, 1f);
     }
 

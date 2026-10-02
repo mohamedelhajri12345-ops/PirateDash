@@ -29,7 +29,8 @@ public class SkinLoader {
             "play", "play_saved", "star", "stopwatch", "palette", "home", "replay",
             "share", "sound_on", "sound_off", "snap_on", "snap_off", "issues", "credits",
             "web", "back", "ok", "cancel", "power_off", "effects",
-            "wheel", "missions", "vibrate_on", "vibrate_off"
+            "wheel", "missions", "vibrate_on", "vibrate_off",
+            "logo", "gift", "pixel"
     };
 
     private final static float bestMultiplier;

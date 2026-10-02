@@ -38,9 +38,13 @@ public abstract class BaseScorer implements BinSerializable {
 
     final Label currentScoreLabel;
     final Label highScoreLabel;
+    final Label scoreCaption;
+    final Label bestCaption;
 
     final Texture cupTexture;
+    final Texture panelTexture;
     final Rectangle cupArea;
+    final Rectangle hudArea;
 
     private final Color cupColor;
 
@@ -61,9 +65,22 @@ public abstract class BaseScorer implements BinSerializable {
         labelStyle.font = game.skin.getFont("font");
 
         currentScoreLabel = new Label("0", labelStyle);
-        currentScoreLabel.setAlignment(Align.right);
+        currentScoreLabel.setAlignment(Align.left);
 
         highScoreLabel = new Label(Integer.toString(highScore), labelStyle);
+        highScoreLabel.setAlignment(Align.right);
+
+        Label.LabelStyle captionStyle = new Label.LabelStyle();
+        captionStyle.font = game.skin.getFont("font_small");
+
+        scoreCaption = new Label("SCORE", captionStyle);
+        scoreCaption.setAlignment(Align.left);
+
+        bestCaption = new Label("BEST", captionStyle);
+        bestCaption.setAlignment(Align.right);
+
+        panelTexture = SkinLoader.loadPng("pixel");
+        hudArea = new Rectangle();
 
         layout.update(this);
     }

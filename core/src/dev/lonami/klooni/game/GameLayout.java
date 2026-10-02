@@ -75,22 +75,37 @@ public class GameLayout {
     // add them to a table (and would probably be harder), this approach
     // was used. Note that all these are using Y-up coordinates.
     void update(BaseScorer scorer) {
-        float cupSize = Math.min(scoreHeight, scorer.cupTexture.getHeight());
+        final float cupSize = Math.min(scoreHeight * 0.6f, Gdx.graphics.getWidth() * 0.12f);
         final Rectangle area = new Rectangle(
                 marginWidth, pieceHolderHeight + boardHeight,
                 availableWidth, scoreHeight);
 
-        scorer.cupArea.set(
-                area.x + area.width * 0.5f - cupSize * 0.5f, area.y,
-                cupSize, cupSize);
+        // Panel behind the whole HUD, slightly wider than the content
+        scorer.hudArea.set(
+                area.x - marginWidth * 0.5f, area.y - area.height * 0.06f,
+                area.width + marginWidth, area.height * 0.98f);
 
+        // Left block: SCORE caption above the big score
+        scorer.scoreCaption.setBounds(
+                area.x, area.y + area.height * 0.66f,
+                area.width * 0.5f, area.height * 0.26f);
         scorer.currentScoreLabel.setBounds(
-                area.x, area.y,
-                area.width * 0.5f - cupSize * 0.5f, area.height);
+                area.x, area.y - area.height * 0.04f,
+                area.width * 0.46f, area.height * 0.72f);
 
+        // Right block: BEST caption, value and the cup at the far right
+        final float rightBlock = area.width * 0.46f - cupSize * 1.1f;
+        scorer.bestCaption.setBounds(
+                area.x + area.width * 0.5f, area.y + area.height * 0.66f,
+                rightBlock, area.height * 0.26f);
         scorer.highScoreLabel.setBounds(
-                area.x + area.width * 0.5f + cupSize * 0.5f, area.y,
-                area.width * 0.5f - cupSize * 0.5f, area.height);
+                area.x + area.width * 0.5f, area.y - area.height * 0.04f,
+                rightBlock, area.height * 0.72f);
+
+        scorer.cupArea.set(
+                area.x + area.width - cupSize,
+                area.y + area.height * 0.1f,
+                cupSize, cupSize);
     }
 
     // Special case, we want to position the label on top of the cup

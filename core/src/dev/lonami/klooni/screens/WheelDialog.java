@@ -63,10 +63,16 @@ public class WheelDialog extends Dialog {
     public WheelDialog(final Skin skin) {
         super("LUCKY WHEEL", skin, "dialog");
 
+        // Current coin balance on top
+        final Label coinsLabel = new Label("Coins: " + Klooni.getMoney(), skin);
+        getContentTable().add(coinsLabel).padBottom(10);
+
         final Texture wheelTexture = SkinLoader.loadPng("wheel");
         wheelImage = new Image(wheelTexture);
         wheelImage.setOrigin(Align.center);
-        getContentTable().add(wheelImage).size(Gdx.graphics.getHeight() * 0.45f);
+        getContentTable().row();
+        getContentTable().add(wheelImage).size(
+                Math.min(Gdx.graphics.getWidth() * 0.75f, Gdx.graphics.getHeight() * 0.42f));
 
         resultLabel = new Label("", skin);
         resultLabel.setAlignment(Align.center);

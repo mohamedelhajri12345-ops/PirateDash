@@ -27,10 +27,13 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+
+import com.badlogic.gdx.utils.Align;
 
 import dev.lonami.klooni.Klooni;
 import dev.lonami.klooni.game.BaseScorer;
@@ -73,6 +76,13 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
     private float shakeTime;
     private final Matrix4 shakeMatrix = new Matrix4();
     private int lastMissionScore;
+
+    // Star Puzzle HUD extras
+    private final Label comboLabel;
+    private final Label recordBanner;
+    private float recordBannerTime;
+    private boolean recordShown;
+    private int lastLevel;
 
     // The last score that was saved when adding the money.
     // We use this so we don't add the same old score to the money twice,
@@ -124,6 +134,17 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
         bonusParticleHandler = new BonusParticleHandler(game);
 
         gameOverSound = Gdx.audio.newSound(Gdx.files.internal("sound/game_over.mp3"));
+
+        // Star Puzzle: floating combo indicator and record banner
+        Label.LabelStyle comboStyle = new Label.LabelStyle();
+        comboStyle.font = game.skin.getFont("font_small");
+        comboLabel = new Label("", comboStyle);
+        comboLabel.setAlignment(Align.center);
+
+        Label.LabelStyle bannerStyle = new Label.LabelStyle();
+        bannerStyle.font = game.skin.getFont("font");
+        recordBanner = new Label("NEW RECORD!", bannerStyle);
+        recordBanner.setAlignment(Align.center);
 
         if (gameMode == GAME_MODE_SCORE) {
             if (loadSave) {
@@ -225,7 +246,39 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
         holder.draw(batch);
         bonusParticleHandler.run(batch);
 
+        // Star Puzzle: persistent combo indicator over the board
+        if (combo >= 2) {
+            comboLabel.setText("COMBO x" + combo);
+            final float pulse = 0.5f + 0.5f * (float) Math.sin((double) System.nanoTime() * 2e-8);
+            comboLabel.setColor(1f, 0.75f, 0.2f, Math.max(0.45f, pulse));
+            comboLabel.setBounds(
+                    board.pos.x, board.pos.y + board.cellCount * board.cellSize - board.cellSize * 0.8f,
+                    board.cellCount * board.cellSize, board.cellSize * 0.8f);
+            comboLabel.draw(batch, 1f);
+        }
+
+        // Star Puzzle: new record celebration banner
+        if (recordBannerTime > 0f) {
+            recordBannerTime -= Gdx.graphics.getDeltaTime();
+            final float alpha = Math.min(1f, recordBannerTime * 2f);
+            final float pulse = 1.05f + 0.05f * (float) Math.sin((double) System.nanoTime() * 3e-8);
+            recordBanner.setColor(1f, 0.85f, 0.25f, alpha);
+            recordBanner.setBounds(
+                    0f, board.pos.y + board.cellCount * board.cellSize * 0.4f,
+                    Gdx.graphics.getWidth(), board.cellSize * pulse);
+            recordBanner.draw(batch, 1f);
+        }
+
         batch.end();
+
+        // Star Puzzle: fire the celebration the first moment we beat the record
+        if (!recordShown && scorer.getCurrentScore() > 0 && scorer.isRecord()) {
+            recordShown = true;
+            recordBannerTime = 3f;
+            shakeTime = 0.4f;
+            Klooni.playStarSound();
+            Klooni.vibrate(150);
+        }
 
         if (pauseMenu.isShown() || pauseMenu.isHiding()) {
             pauseMenu.act(delta);
@@ -293,6 +346,19 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
                 Missions.onLinesCleared(cleared);
             } else {
                 combo = 0;
+            }
+
+            // Star Puzzle: level system, a new banner every 500 points
+            final int level = scorer.getCurrentScore() / 500 + 1;
+            if (level > lastLevel) {
+                if (lastLevel > 0) {
+                    bonusParticleHandler.addMessage(
+                            board.cellCenter(board.cellCount / 2, board.cellCount / 2),
+                            "LEVEL " + level);
+                    Klooni.playComboSound(level);
+                    Klooni.vibrate(60);
+                }
+                lastLevel = level;
             }
 
             // Star Puzzle: daily missions progress
