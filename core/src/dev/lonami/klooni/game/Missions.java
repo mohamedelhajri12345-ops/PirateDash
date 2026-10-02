@@ -18,6 +18,8 @@
 package dev.lonami.klooni.game;
 
 import com.badlogic.gdx.Gdx;
+
+import dev.lonami.klooni.Klooni;
 import com.badlogic.gdx.Preferences;
 
 import java.text.SimpleDateFormat;
