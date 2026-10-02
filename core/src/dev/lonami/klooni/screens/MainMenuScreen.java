@@ -110,7 +110,7 @@ public class MainMenuScreen extends InputListener implements Screen {
         wheelButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                final WheelDialog dialog = new WheelDialog(game.skin);
+                final WheelDialog dialog = new WheelDialog(MainMenuScreen.this.game.skin);
                 dialog.pack();
                 dialog.show(stage);
                 dialog.setPosition((stage.getWidth() - dialog.getWidth()) * 0.5f,
@@ -124,7 +124,7 @@ public class MainMenuScreen extends InputListener implements Screen {
         missionsButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                final DailyDialog dialog = new DailyDialog(game.skin);
+                final DailyDialog dialog = new DailyDialog(MainMenuScreen.this.game.skin);
                 dialog.pack();
                 dialog.show(stage);
                 dialog.setPosition((stage.getWidth() - dialog.getWidth()) * 0.5f,
