@@ -67,41 +67,51 @@ object LevelCatalog {
         val objectiveType = pickObjective(random, world, indexInWorld)
 
         val prefillDensity =
-            if (world < 3) 0
-            else minOf(4 + world + (t * 6).toInt(), 30)
+            if (world < 4) 0
+            else minOf(2 + (world - 4) + (t * 5).toInt(), 20)
 
         val specialChance = if (world >= 7) 10 + (world - 7) * 2 else 5
 
         val rewardCoins = 10 + id / 20 + (if (indexInWorld == 100) 40 else 0)
 
+        // ─── v2.3.0 difficulty redesign ───
+        // Design goal (user feedback: "15 moves run out and I never finish"):
+        // every level must be completable by an ordinary player with a real
+        // margin. Points per move baseline: ~3 (piece area) + line clears
+        // (~10 per line + combo bonuses). Early worlds are place-and-win
+        // tutorials; only late worlds ask for chained clears.
         return when (objectiveType) {
             LevelDefinition.TYPE_LINES -> {
-                val targetLines = 3 + (t * 6).toInt() + world + random.nextInt(3)
-                val maxMoves = (targetLines * 1.7f).toInt() + 8
+                // a line every ~3 moves is the comfortable human pace
+                val targetLines = 2 + (world / 2) + (t * 4).toInt() +
+                        (if (random.nextInt(2) == 1) 1 else 0)
+                val maxMoves = targetLines * 3 + 10 + world
                 LevelDefinition(id, world, indexInWorld, objectiveType,
                     0, targetLines, 0, maxMoves, 0,
                     prefillDensity, random.nextLong(), specialChance, rewardCoins)
             }
             LevelDefinition.TYPE_TIME -> {
-                val timeLimit = if (world >= 8) 60 + random.nextInt(30) else 90 + random.nextInt(60)
-                val targetScore = Math.round(timeLimit * (10f + w * 1.2f + t * 4f))
+                val timeLimit = 90 + random.nextInt(45)
+                // ~1.5-2s per move; sustained score of a decent player is
+                // roughly (2 + 0.35w + 0.8t) points per second
+                val targetScore = Math.round(timeLimit * (1.6f + w * 0.22f + t * 0.35f))
                 LevelDefinition(id, world, indexInWorld, objectiveType,
                     targetScore, 0, 0, 0, timeLimit,
                     prefillDensity, random.nextLong(), specialChance, rewardCoins)
             }
             LevelDefinition.TYPE_COMBO -> {
-                val targetCombo = minOf(
-                    3 + (w * 0.4f).toInt() + (if (t > 0.6f) 1 else 0) + (if (random.nextBoolean()) 1 else 0),
-                    7
-                )
-                val maxMoves = 12 + random.nextInt(6) + world
+                val targetCombo = (2 + w / 3).coerceIn(2, 5)
+                val maxMoves = 20 + world + random.nextInt(4)
                 LevelDefinition(id, world, indexInWorld, objectiveType,
                     0, 0, targetCombo, maxMoves, 0,
                     prefillDensity, random.nextLong(), specialChance, rewardCoins)
             }
             else -> { // TYPE_SCORE
-                val maxMoves = 14 + world + (t * 8).toInt() + random.nextInt(5)
-                val targetScore = Math.round(maxMoves * (20f + w * 2.2f + t * 6f) * 0.92f)
+                val maxMoves = 20 + world + (t * 8).toInt() + random.nextInt(4)
+                // Human sustained rate: ~7-8 pts/move for a decent player.
+                // W1 ~3.2 (pure placement finishes it) rising to ~10 in
+                // world 10 (needs regular clears and combos — boss tier)
+                val targetScore = Math.round(maxMoves * (3.2f + w * 0.6f + t * 1.2f))
                 LevelDefinition(id, world, indexInWorld, objectiveType,
                     targetScore, 0, 0, maxMoves, 0,
                     prefillDensity, random.nextLong(), specialChance, rewardCoins)

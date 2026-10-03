@@ -142,7 +142,7 @@ fun MainMenuScreen(
                 SmallButton("DAILY") { onDaily() }
 
                 Text(
-                    "v2.2.0",
+                    "v2.3.0",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                     modifier = Modifier.padding(top = 18.dp)

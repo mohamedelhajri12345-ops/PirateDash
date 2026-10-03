@@ -36,23 +36,25 @@ class LevelCatalogTest {
             when (l.objectiveType) {
                 LevelDefinition.TYPE_SCORE -> {
                     assertTrue(l.targetScore > 0)
-                    assertTrue(l.maxMoves >= 14)
+                    assertTrue(l.maxMoves >= 20)
                 }
                 LevelDefinition.TYPE_LINES -> {
-                    assertTrue(l.targetLines in 3..21)
-                    assertTrue(l.maxMoves > 0)
+                    assertTrue("lines ${l.targetLines} id ${l.id}", l.targetLines in 2..12)
+                    assertTrue(l.maxMoves >= 15)
+                    // a line every ~3 moves must always be possible
+                    assertTrue(l.maxMoves >= l.targetLines * 3)
                 }
                 LevelDefinition.TYPE_TIME -> {
                     assertTrue(l.targetScore > 0)
-                    assertTrue(l.timeLimit >= 60)
+                    assertTrue(l.timeLimit >= 90)
                 }
                 LevelDefinition.TYPE_COMBO -> {
-                    assertTrue(l.targetCombo in 3..7)
-                    assertTrue(l.maxMoves > 0)
+                    assertTrue(l.targetCombo in 2..5)
+                    assertTrue(l.maxMoves >= 20)
                 }
                 else -> throw AssertionError("bad objective type ${l.objectiveType}")
             }
-            assertTrue(l.prefillDensity in 0..30)
+            assertTrue(l.prefillDensity in 0..20)
             assertTrue(l.specialChance in 5..16)
         }
     }
@@ -118,6 +120,30 @@ class LevelCatalogTest {
         store.savedStars[1] = 3
         for (id in 1..15) store.savedStars[id] = 2
         assertTrue(progress.worldUnlocked(2))
+    }
+
+    @Test
+    fun gentleStartIsAWalkthrough() {
+        // the very first levels must be finishable by pure placement
+        val l1 = LevelCatalog.getLevel(1)
+        assertTrue(l1.target() <= 120)
+        assertTrue(l1.maxMoves >= 20)
+        val l2 = LevelCatalog.getLevel(2)
+        assertTrue(l2.target() <= 130)
+    }
+
+    @Test
+    fun scoreTargetsStayHumanlyReachable() {
+        // sustained 14+ pts/move is beyond a good human: cap the curve
+        for (id in 1..1000 step 7) {
+            val l = LevelCatalog.getLevel(id)
+            if (l.objectiveType == LevelDefinition.TYPE_SCORE || l.objectiveType == LevelDefinition.TYPE_TIME) {
+                if (l.maxMoves > 0) {
+                    val perMove = l.targetScore.toFloat() / l.maxMoves
+                    assertTrue("id $id needs $perMove pts/move", perMove <= 10.5f)
+                }
+            }
+        }
     }
 
     @Test

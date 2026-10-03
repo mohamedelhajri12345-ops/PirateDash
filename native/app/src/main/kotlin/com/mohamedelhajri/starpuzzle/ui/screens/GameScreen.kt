@@ -108,7 +108,8 @@ fun GameScreen(
     var trayOrigin by remember { mutableStateOf(Offset.Zero) }
     var trayHeight by remember { mutableStateOf(0f) }
     var trayWidth by remember { mutableStateOf(0f) }
-    var slotPx by remember { mutableStateOf(0f) }
+    // Real tray slot centers captured from layout — exact hit-testing
+    val slotCenters = remember { FloatArray(8) }
 
     // drag state
     var dragIndex by remember { mutableStateOf(-1) }
@@ -220,6 +221,43 @@ fun GameScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .pointerInput(liveSession) {
+                detectDragGestures(
+                    onDragStart = { pos ->
+                        if (trayWidth <= 0f) return@detectDragGestures
+                        val inTrayY = pos.y >= trayOrigin.y &&
+                                pos.y <= trayOrigin.y + trayHeight
+                        if (inTrayY && liveSession.tray.isNotEmpty()) {
+                            // exact hit-test: the piece whose real captured
+                            // center is nearest to the finger gets picked
+                            val n = liveSession.tray.size
+                            val idx = if (n <= 8 && slotCenters[n - 1] > 0f) {
+                                var best = 0
+                                var bestDist = Float.MAX_VALUE
+                                for (i in 0 until n) {
+                                    val d = kotlin.math.abs(pos.x - slotCenters[i])
+                                    if (d < bestDist) { bestDist = d; best = i }
+                                }
+                                best
+                            } else {
+                                ((pos.x - trayOrigin.x) / (trayWidth / n))
+                                        .toInt().coerceIn(0, n - 1)
+                            }
+                            dragIndex = idx
+                            dragPos = pos
+                            updateDragTarget()
+                        }
+                    },
+                    onDrag = { change, _ ->
+                        if (dragIndex >= 0) {
+                            dragPos = change.position
+                            updateDragTarget()
+                        }
+                    },
+                    onDragEnd = { tryPlace() },
+                    onDragCancel = { dragIndex = -1 }
+                )
+            }
     ) {
         // Phase B: the level's world identity animates behind the board
         WorldBackdrop(
@@ -385,7 +423,9 @@ fun GameScreen(
                             modifier = Modifier
                                 .size(slotSize)
                                 .onGloballyPositioned { c ->
-                                    if (c.size.width > 0) slotPx = c.size.width.toFloat()
+                                    if (c.size.width > 0 && index < 8)
+                                        slotCenters[index] =
+                                            c.positionInRoot().x + c.size.width / 2f
                                 }
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(MaterialTheme.colorScheme.surface)
@@ -444,52 +484,10 @@ fun GameScreen(
         }
 
         // ── Input: drag from tray onto board ──
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(liveSession) {
-                    detectDragGestures(
-                        onDragStart = { pos ->
-                            if (trayWidth <= 0f) return@detectDragGestures
-                            val inTrayY = pos.y >= trayOrigin.y &&
-                                    pos.y <= trayOrigin.y + trayHeight
-                            if (inTrayY && liveSession.tray.isNotEmpty()) {
-                                // Hit-test against the REAL slot layout (Row
-                                // SpaceEvenly puts a gap around each piece), not
-                                // a naive equal split — that split was why the
-                                // wrong piece got picked up.
-                                val n = liveSession.tray.size
-                                val idx = if (slotPx > 0f) {
-                                    val gap = ((trayWidth - n * slotPx) / (n + 1)).coerceAtLeast(0f)
-                                    var best = 0
-                                    var bestDist = Float.MAX_VALUE
-                                    for (i in 0 until n) {
-                                        val cx = trayOrigin.x + gap +
-                                                i * (slotPx + gap) + slotPx / 2f
-                                        val d = kotlin.math.abs(pos.x - cx)
-                                        if (d < bestDist) { bestDist = d; best = i }
-                                    }
-                                    best
-                                } else {
-                                    ((pos.x - trayOrigin.x) / (trayWidth / n))
-                                        .toInt().coerceIn(0, n - 1)
-                                }
-                                dragIndex = idx
-                                dragPos = pos
-                                updateDragTarget()
-                            }
-                        },
-                        onDrag = { change, _ ->
-                            if (dragIndex >= 0) {
-                                dragPos = change.position
-                                updateDragTarget()
-                            }
-                        },
-                        onDragEnd = { tryPlace() },
-                        onDragCancel = { dragIndex = -1 }
-                    )
-                }
-        )
+        // NOTE: input lives on the ROOT so children (Back, MOVE, dialogs)
+        // receive their taps first. The old invisible full-screen overlay
+        // sat on top of the HUD and swallowed every button click — that was
+        // why the back arrow and MOVE appeared "broken".
 
         // ── Result dialog ──
         if (resultShown) {
