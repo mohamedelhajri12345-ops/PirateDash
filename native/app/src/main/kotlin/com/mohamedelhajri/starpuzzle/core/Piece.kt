@@ -45,6 +45,11 @@ class Piece private constructor(
                 8 -> { cols = 3; rows = 3 }
                 else -> throw IllegalArgumentException("bad piece color index $colorIndex")
             }
+            // line pieces: odd rotations make the line horizontal
+            if (colorIndex in 3..6 && (rotateCount and 1) == 1) {
+                val len = rows
+                cols = len; rows = 1
+            }
             // L rotation: rotate the bounding box
             if (colorIndex == 7 || colorIndex == 8) {
                 repeat(rotateCount and 3) {
@@ -54,7 +59,8 @@ class Piece private constructor(
             val shape = Array(rows) { BooleanArray(cols) }
             when (colorIndex) {
                 in 0..2 -> for (i in 0 until rows) for (j in 0 until cols) shape[i][j] = true
-                in 3..6 -> for (i in 0 until rows) shape[i][0] = true
+                in 3..6 -> if (rows == 1) for (j in 0 until cols) shape[0][j] = true
+                            else for (i in 0 until rows) shape[i][0] = true
                 else -> { // L shapes (7: 2x3, 8: 3x3 L-corner)
                     val lSize = if (colorIndex == 7) 2 else 3
                     // Build the L in its unrotated orientation then rotate it

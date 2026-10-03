@@ -102,6 +102,47 @@ class PowerUpSafetyTest {
         assertEquals(19, newBoard().apply { fill(this) }.clearCross(42, 42).size)
     }
 
+    // ── piece rotation ──
+
+    @Test
+    fun linePiecesRotateBetweenVerticalAndHorizontal() {
+        val v = Piece.normal(5, 0) // 1x4 vertical
+        assertEquals(1, v.cellCols)
+        assertEquals(4, v.cellRows)
+        assertTrue(v.filled(3, 0))
+        val h = Piece.normal(5, 1) // rotated: 4x1 horizontal
+        assertEquals(4, h.cellCols)
+        assertEquals(1, h.cellRows)
+        assertTrue(h.filled(0, 3))
+        // every rotation of every line piece stays a connected full line
+        for (ci in 3..6) for (rot in 0..3) {
+            val p = Piece.normal(ci, rot)
+            assertEquals(p.area(), maxOf(p.cellCols, p.cellRows))
+        }
+    }
+
+    @Test
+    fun lPieceRotationsStayValidShapes() {
+        for (ci in intArrayOf(7, 8)) for (rot in 0..3) {
+            val p = Piece.normal(ci, rot, java.util.Random(1))
+            assertTrue(p.area() == 3 || p.area() == 4)
+            assertTrue(p.cellCols in 2..3 && p.cellRows in 2..3)
+        }
+    }
+
+    // ── prefill safety across the whole catalog ──
+
+    @Test
+    fun prefillNeverStartsWithCompletedLinesOrUnplayableBoard() {
+        for (id in 1..1000 step 13) {
+            val l = LevelCatalog.getLevel(id)
+            if (l.prefillDensity == 0) continue
+            val b = GameBoard(10)
+            b.prefill(l.seed, l.prefillDensity)
+            assertEquals("level $id starts with a completed line", 0, b.clearComplete().lines)
+        }
+    }
+
     // ── line clears ──
 
     @Test

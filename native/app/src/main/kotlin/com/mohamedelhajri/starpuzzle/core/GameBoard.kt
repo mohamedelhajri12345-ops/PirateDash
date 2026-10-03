@@ -110,6 +110,8 @@ class GameBoard(val size: Int = 10) {
             if (cells[y][x] < 0) { cells[y][x] = rng.nextInt(8); placed++ }
             if (rowComplete(y) || colComplete(x)) break // never start with a cleared line
         }
+        // Never start with an already-completed line waiting on the board
+        clearComplete()
         // Always leave a free 2x2 center so the level is playable from move 1
         val c = size / 2
         setCell(c, c, -1); setCell(c - 1, c, -1); setCell(c, c - 1, -1); setCell(c - 1, c - 1, -1)
