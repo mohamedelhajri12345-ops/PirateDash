@@ -164,11 +164,13 @@ fun WorldMapScreen(
             val worldFirst = (selectedWorld - 1) * 100 + 1
             items((0 until 100).toList()) { idx ->
                 val levelId = worldFirst + idx
+                val unlocked = levelId <= firstUnfinished ||
+                        progress.starsForLevel(levelId) > 0
                 LevelNode(
                     levelId = levelId,
                     stars = progress.starsForLevel(levelId),
                     isCurrent = levelId == firstUnfinished,
-                    onClick = { onPickLevel(levelId) }
+                    onClick = { if (unlocked) onPickLevel(levelId) }
                 )
             }
         }
@@ -183,13 +185,17 @@ private fun LevelNode(
     onClick: () -> Unit
 ) {
     val done = stars > 0
-    val pulse = rememberInfiniteTransition(label = "nodePulse")
-    val pulseScale by pulse.animateFloat(
-        initialValue = 1f, targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
-        label = "nodeScale"
-    )
-    val scale = if (isCurrent) pulseScale else 1f
+    // Only the single current node runs a pulse — 100 idle infinite
+    // transitions in the grid would saturate the animation clock.
+    val scale = if (isCurrent) {
+        val pulse = rememberInfiniteTransition(label = "nodePulse")
+        val pulseScale by pulse.animateFloat(
+            initialValue = 1f, targetValue = 1.08f,
+            animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+            label = "nodeScale"
+        )
+        pulseScale
+    } else 1f
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,

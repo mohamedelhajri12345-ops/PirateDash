@@ -22,9 +22,11 @@ object LevelCatalog {
 
     private const val SEED_SALT = 53701221L // "STARPUZZLE" flavor
 
-    fun worldName(world: Int): String = WORLD_NAMES[world - 1]
+    fun worldName(world: Int): String =
+        WORLD_NAMES[world.coerceIn(1, TOTAL_WORLDS) - 1]
 
-    fun worldUnlockStars(world: Int): Int = WORLD_UNLOCK_STARS[world - 1]
+    fun worldUnlockStars(world: Int): Int =
+        WORLD_UNLOCK_STARS[world.coerceIn(1, TOTAL_WORLDS) - 1]
 
     /** Level id -> result of the objective evaluation, injected via stars map. */
     fun firstUnfinishedLevel(stars: Map<Int, Int>): Int {

@@ -10,6 +10,10 @@ class Piece private constructor(
     private val shape: Array<BooleanArray>
 ) {
     companion object {
+        // Contract: the UI palette MUST provide exactly this many colors.
+        // Piece shapes are indexed 0..8 and each shape carries its own color.
+        const val PIECE_COLOR_COUNT = 9
+
         const val SPECIAL_STAR = 100
         const val SPECIAL_BOMB = 101
         const val SPECIAL_LIGHTNING = 102

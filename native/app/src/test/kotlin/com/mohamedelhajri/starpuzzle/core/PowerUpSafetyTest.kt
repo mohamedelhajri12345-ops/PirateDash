@@ -102,6 +102,36 @@ class PowerUpSafetyTest {
         assertEquals(19, newBoard().apply { fill(this) }.clearCross(42, 42).size)
     }
 
+    // ── color palette contract (the v2.0.x root-cause crash class) ──
+
+    @Test
+    fun everyGeneratedPieceCarriesARealPaletteColor() {
+        val rng = java.util.Random(42)
+        repeat(5000) {
+            val p = Piece.random(10, rng)
+            if (!p.isSpecial) {
+                assertTrue(
+                    "colorIndex ${p.colorIndex} outside palette",
+                    p.colorIndex in 0 until Piece.PIECE_COLOR_COUNT
+                )
+            }
+        }
+    }
+
+    @Test
+    fun boardCellsAlwaysHoldRealPaletteColors() {
+        val rng = java.util.Random(7)
+        repeat(300) {
+            val b = GameBoard(10)
+            val p = Piece.random(0, rng) // normal pieces only
+            if (b.canPut(p, 0, 0)) b.putPiece(p, 0, 0)
+            for (y in 0 until 10) for (x in 0 until 10) {
+                val c = b.colorAt(x, y)
+                assertTrue("cell color $c outside palette", c == -1 || c in 0 until Piece.PIECE_COLOR_COUNT)
+            }
+        }
+    }
+
     // ── piece rotation ──
 
     @Test

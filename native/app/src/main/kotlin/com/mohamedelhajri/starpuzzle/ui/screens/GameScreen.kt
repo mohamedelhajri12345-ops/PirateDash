@@ -64,7 +64,7 @@ import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.GameSession
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
 import com.mohamedelhajri.starpuzzle.core.Piece
-import com.mohamedelhajri.starpuzzle.ui.theme.PieceColors
+import com.mohamedelhajri.starpuzzle.ui.theme.pieceColor
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialBombColor
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialLightningColor
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialStarColor
@@ -132,11 +132,15 @@ fun GameScreen(
             val dt = (now - last) / 1_000_000_000f
             last = now
             liveSession.tick(dt)
-            frame++
+            // Redraw per tick only when a tick-driven visual exists (timed
+            // levels' progress bar). Placements bump `frame` themselves,
+            // so other levels no longer recompose 60-120x per second.
+            if (level.timeLimit > 0) frame++
         }
     }
 
     fun updateDragTarget() {
+        if (boardPx <= 0f) return
         val piece = liveSession.tray.getOrNull(dragIndex) ?: return
         val px = dragPos.x - boardPx * piece.cellCols * 0.5f
         val py = dragPos.y - boardPx * piece.cellRows * 0.5f - boardPx * 1.2f
@@ -148,15 +152,20 @@ fun GameScreen(
     }
 
     fun tryPlace() {
-        if (dragIndex < 0) return
+        if (dragIndex !in liveSession.tray.indices || boardPx <= 0f) {
+            dragIndex = -1
+            return
+        }
+        val piece = liveSession.tray[dragIndex]
         val event = liveSession.placePiece(
             dragIndex,
-            ((dragPos.x - boardPx * (liveSession.tray[dragIndex].cellCols * 0.5f) - boardOrigin.x) / boardPx).toInt(),
-            ((dragPos.y - boardPx * (liveSession.tray[dragIndex].cellRows * 0.5f) - boardPx * 1.2f - boardOrigin.y) / boardPx).toInt()
+            ((dragPos.x - boardPx * (piece.cellCols * 0.5f) - boardOrigin.x) / boardPx).toInt(),
+            ((dragPos.y - boardPx * (piece.cellRows * 0.5f) - boardPx * 1.2f - boardOrigin.y) / boardPx).toInt()
         )
         if (event == null) {
             sound.play(SoundManager.Sfx.INVALID)
         } else {
+            frame++ // placement changed the board — redraw now
             sound.play(SoundManager.Sfx.PLACE)
             if (event.clearedCells.isNotEmpty()) {
                 clearAnimCells = event.clearedCells
@@ -396,6 +405,7 @@ fun GameScreen(
                 .pointerInput(liveSession) {
                     detectDragGestures(
                         onDragStart = { pos ->
+                            if (trayWidth <= 0f) return@detectDragGestures
                             val inTrayY = pos.y >= trayOrigin.y &&
                                     pos.y <= trayOrigin.y + trayHeight
                             if (inTrayY && liveSession.tray.isNotEmpty()) {
@@ -521,7 +531,7 @@ private fun BoardCanvas(
                     for (j in 0 until held.cellCols)
                         if (held.filled(i, j))
                             drawRoundRect(
-                                PieceColors[held.colorIndex].copy(alpha = 0.35f),
+                                pieceColor(held.colorIndex).copy(alpha = 0.35f),
                                 topLeft = Offset(
                                     (dragTargetX + j) * cell + gap / 2,
                                     (dragTargetY + i) * cell + gap / 2),
@@ -548,7 +558,7 @@ private fun BoardCanvas(
                 val color = session.board.colorAt(x, y)
                 if (color >= 0) {
                     drawCellShape(
-                        PieceColors[color],
+                        pieceColor(color),
                         Offset(x * cell + gap / 2, y * cell + gap / 2),
                         cell - gap
                     )
@@ -601,7 +611,7 @@ fun DrawScope.drawPiece(
         drawSpecialGlyph(piece.colorIndex, origin, cellSize, alpha)
         return
     }
-    val color = PieceColors[piece.colorIndex].copy(alpha = alpha)
+    val color = pieceColor(piece.colorIndex).copy(alpha = alpha)
     val gap = cellSize * 0.08f
     val r = CornerRadius((cellSize - gap) * 0.22f)
     for (i in 0 until piece.cellRows)

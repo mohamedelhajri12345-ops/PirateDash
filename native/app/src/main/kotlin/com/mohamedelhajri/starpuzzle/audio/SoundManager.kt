@@ -21,7 +21,10 @@ class SoundManager(context: Context) {
         .build()
 
     private val ids = mutableMapOf<Sfx, Int>()
-    private val loaded = mutableSetOf<Int>()
+    // SoundPool's load callback fires on an audio thread while play()
+    // reads from the UI thread — this set must be thread-safe.
+    private val loaded: MutableSet<Int> =
+        java.util.concurrent.ConcurrentHashMap.newKeySet()
 
     enum class Sfx { PLACE, INVALID, CLEAR, COMBO, BOMB, STAR, GAME_OVER, COIN }
 

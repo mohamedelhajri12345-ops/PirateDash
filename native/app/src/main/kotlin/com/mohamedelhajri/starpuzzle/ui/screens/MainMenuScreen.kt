@@ -140,6 +140,13 @@ fun MainMenuScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 SmallButton("WORLDS") { onWorldMap() }
                 SmallButton("DAILY") { onDaily() }
+
+                Text(
+                    "v2.1.0",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                    modifier = Modifier.padding(top = 18.dp)
+                )
             }
         }
     }

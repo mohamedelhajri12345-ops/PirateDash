@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,10 +32,28 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        installCrashShield()
         setContent {
             StarPuzzleTheme {
                 StarPuzzleApp()
             }
+        }
+    }
+
+    /**
+     * Crash shield: every uncaught exception is persisted to crash.log before
+     * the default handler runs, so any field report can be diagnosed from the
+     * exact stack trace. The audit fixes keep this from ever firing in play.
+     */
+    private fun installCrashShield() {
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            runCatching {
+                java.io.File(filesDir, "crash.log").writeText(
+                    "version=2.1.0\n" + android.util.Log.getStackTraceString(throwable)
+                )
+            }
+            previous?.uncaughtException(thread, throwable)
         }
     }
 }
@@ -51,6 +70,11 @@ fun StarPuzzleApp() {
     var hapticsOn by remember { mutableStateOf(store.loadHaptics()) }
 
     sound.enabled = soundOn
+
+    // Release the native SoundPool when the UI finally leaves
+    DisposableEffect(sound) {
+        onDispose { sound.release() }
+    }
 
     AnimatedContent(
         targetState = screen,
