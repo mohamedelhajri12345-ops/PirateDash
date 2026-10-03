@@ -100,7 +100,7 @@ object LevelCatalog {
                     prefillDensity, random.nextLong(), specialChance, rewardCoins)
             }
             LevelDefinition.TYPE_COMBO -> {
-                val targetCombo = (2 + w / 3).coerceIn(2, 5)
+                val targetCombo = (2 + w / 3).toInt().coerceIn(2, 5)
                 val maxMoves = 20 + world + random.nextInt(4)
                 LevelDefinition(id, world, indexInWorld, objectiveType,
                     0, 0, targetCombo, maxMoves, 0,
