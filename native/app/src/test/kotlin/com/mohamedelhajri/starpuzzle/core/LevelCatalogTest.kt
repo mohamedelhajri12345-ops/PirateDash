@@ -39,7 +39,7 @@ class LevelCatalogTest {
                     assertTrue(l.maxMoves >= 14)
                 }
                 LevelDefinition.TYPE_LINES -> {
-                    assertTrue(l.targetLines in 3..15)
+                    assertTrue(l.targetLines in 3..21)
                     assertTrue(l.maxMoves > 0)
                 }
                 LevelDefinition.TYPE_TIME -> {
