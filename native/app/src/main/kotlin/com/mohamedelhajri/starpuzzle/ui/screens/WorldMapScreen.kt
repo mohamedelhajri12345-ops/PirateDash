@@ -182,6 +182,7 @@ fun WorldMapScreen(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -254,5 +255,4 @@ private fun LevelNode(
             }
         }
         }
-    }
 }
