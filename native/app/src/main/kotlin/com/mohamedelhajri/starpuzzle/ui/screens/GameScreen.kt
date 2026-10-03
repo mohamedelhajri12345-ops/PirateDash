@@ -63,6 +63,7 @@ import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.GameSession
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
+import com.mohamedelhajri.starpuzzle.core.LevelDefinition
 import com.mohamedelhajri.starpuzzle.core.Piece
 import com.mohamedelhajri.starpuzzle.ui.theme.pieceColor
 import com.mohamedelhajri.starpuzzle.ui.worlds.WorldBackdrop
