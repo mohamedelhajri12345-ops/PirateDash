@@ -41,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,7 +68,6 @@ import com.mohamedelhajri.starpuzzle.ui.theme.PieceColors
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialBombColor
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialLightningColor
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialStarColor
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withFrameNanos
 import kotlin.math.min

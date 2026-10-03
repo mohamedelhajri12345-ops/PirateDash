@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -183,11 +184,12 @@ private fun LevelNode(
 ) {
     val done = stars > 0
     val pulse = rememberInfiniteTransition(label = "nodePulse")
-    val scale by if (isCurrent) pulse.animateFloat(
+    val pulseScale by pulse.animateFloat(
         initialValue = 1f, targetValue = 1.08f,
         animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
         label = "nodeScale"
-    ) else remember { mutableStateOf(1f) }
+    )
+    val scale = if (isCurrent) pulseScale else 1f
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,

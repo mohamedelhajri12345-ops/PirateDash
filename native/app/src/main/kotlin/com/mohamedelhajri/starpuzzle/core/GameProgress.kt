@@ -34,11 +34,11 @@ class GameProgress(private val store: SaveStore) {
 
     fun firstUnfinished(): Int = LevelCatalog.firstUnfinishedLevel(stars)
 
-    fun recordLevelResult(id: Int, stars: Int, rewardCoins: Int): Boolean {
-        val current = stars
+    fun recordLevelResult(id: Int, starsEarned: Int, rewardCoins: Int): Boolean {
+        val current = store.loadStars()
         val previous = current[id] ?: 0
-        if (stars <= previous) return false
-        current[id] = stars
+        if (starsEarned <= previous) return false
+        current[id] = starsEarned
         store.saveStars(current)
         store.saveCoins(store.loadCoins() + rewardCoins)
         return true

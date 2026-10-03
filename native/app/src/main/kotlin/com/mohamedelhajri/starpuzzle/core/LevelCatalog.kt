@@ -132,7 +132,11 @@ object LevelCatalog {
                 else -> LevelDefinition.TYPE_SCORE
             }
             8 -> if (indexInWorld % 3 != 2) LevelDefinition.TYPE_TIME else LevelDefinition.TYPE_COMBO
-            9 -> if (indexInWorld % 2 == 0) LevelDefinition.TYPE_COMBO
+            9 -> when {
+                indexInWorld % 2 == 0 -> LevelDefinition.TYPE_COMBO
+                indexInWorld % 3 == 1 -> LevelDefinition.TYPE_TIME
+                else -> LevelDefinition.TYPE_LINES
+            }
             else -> when {
                 indexInWorld % 3 == 1 -> LevelDefinition.TYPE_TIME
                 indexInWorld % 3 == 2 -> LevelDefinition.TYPE_LINES
