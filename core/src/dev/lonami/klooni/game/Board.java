@@ -47,6 +47,13 @@ public class Board implements BinSerializable {
     // Used to animate cleared cells vanishing
     private final Vector2 lastPutPiecePos = new Vector2();
 
+    // Star Puzzle: grid coordinates of the cell where the last piece was
+    // placed. This is the single source of truth for power-up targeting:
+    // recomputing targets from screen positions is forbidden (it caused
+    // off-by-one targets and out-of-bounds crashes).
+    public int lastPutCellX = -1;
+    public int lastPutCellY = -1;
+
     //endregion
 
     //region Constructor
@@ -104,16 +111,27 @@ public class Board implements BinSerializable {
         return true;
     }
 
-    // Returns true iff the piece was put on the board
+    // Returns true iff the piece was put on the board.
+    // Star Puzzle: special power-up pieces never write their special color
+    // index into the board. The board only ever stores normal color indices
+    // (-1..7); storing 100+ made Theme.getCellColor throw
+    // ArrayIndexOutOfBoundsException on the next draw and crashed the game.
+    // The exact landing cell is recorded instead, so power-up effects act on
+    // the real target cell (see handleSpecialPiece).
     public boolean putPiece(Piece piece, int x, int y) {
         if (!canPutPiece(piece, x, y))
             return false;
 
         lastPutPiecePos.set(piece.calculateGravityCenter());
-        for (int i = 0; i < piece.cellRows; ++i)
-            for (int j = 0; j < piece.cellCols; ++j)
-                if (piece.filled(i, j))
-                    cells[y + i][x + j].set(piece.colorIndex);
+        lastPutCellX = x;
+        lastPutCellY = y;
+
+        if (!piece.isSpecial()) {
+            for (int i = 0; i < piece.cellRows; ++i)
+                for (int j = 0; j < piece.cellCols; ++j)
+                    if (piece.filled(i, j))
+                        cells[y + i][x + j].set(piece.colorIndex);
+        }
 
         return true;
     }
@@ -148,12 +166,18 @@ public class Board implements BinSerializable {
     }
 
     public boolean putScreenPiece(final Piece piece) {
-        // Convert the on screen coordinates of the piece to the local-board-space coordinates
-        // This is done by subtracting the piece coordinates from the board coordinates
-        Vector2 local = piece.pos.cpy().sub(pos);
-        int x = MathUtils.round(local.x / piece.cellSize);
-        int y = MathUtils.round(local.y / piece.cellSize);
-        return putPiece(piece, x, y);
+        return putPiece(piece, screenToCellX(piece), screenToCellY(piece));
+    }
+
+    // Star Puzzle: canonical screen -> grid conversion. Every piece of code
+    // that needs "which cell is this piece over" must use these, so the drop
+    // and the power-up target can never disagree again.
+    public int screenToCellX(final Piece piece) {
+        return MathUtils.round((piece.pos.x - pos.x) / piece.cellSize);
+    }
+
+    public int screenToCellY(final Piece piece) {
+        return MathUtils.round((piece.pos.y - pos.y) / piece.cellSize);
     }
 
     Vector2 snapToGrid(final Piece piece, final Vector2 position) {
@@ -239,8 +263,10 @@ public class Board implements BinSerializable {
     // Returns the amount of cells that were cleared.
     public int clearArea(final int x, final int y, final int radius, final IEffectFactory effect) {
         int cleared = 0;
-        final int minX = Math.max(0, x - radius), maxX = Math.min(cellCount - 1, x + radius);
-        final int minY = Math.max(0, y - radius), maxY = Math.min(cellCount - 1, y + radius);
+        final int tx = MathUtils.clamp(x, 0, cellCount - 1);
+        final int ty = MathUtils.clamp(y, 0, cellCount - 1);
+        final int minX = Math.max(0, tx - radius), maxX = Math.min(cellCount - 1, tx + radius);
+        final int minY = Math.max(0, ty - radius), maxY = Math.min(cellCount - 1, ty + radius);
 
         for (int i = minY; i <= maxY; ++i) {
             for (int j = minX; j <= maxX; ++j) {
@@ -256,19 +282,23 @@ public class Board implements BinSerializable {
 
     // Star Puzzle: clears the whole row and column crossing on (x, y).
     // Returns the amount of cells that were cleared.
+    // Defensive: targets are clamped into the grid, an out-of-range call can
+    // never throw (ArrayIndexOutOfBoundsException crash guard).
     public int clearCross(final int x, final int y, final IEffectFactory effect) {
+        final int cx = MathUtils.clamp(x, 0, cellCount - 1);
+        final int cy = MathUtils.clamp(y, 0, cellCount - 1);
         int cleared = 0;
         for (int j = 0; j < cellCount; ++j) {
-            if (!cells[y][j].isEmpty()) {
-                effects.add(effect.create(cells[y][j], lastPutPiecePos));
-                cells[y][j].set(-1);
+            if (!cells[cy][j].isEmpty()) {
+                effects.add(effect.create(cells[cy][j], lastPutPiecePos));
+                cells[cy][j].set(-1);
                 cleared++;
             }
         }
         for (int i = 0; i < cellCount; ++i) {
-            if (!cells[i][x].isEmpty()) {
-                effects.add(effect.create(cells[i][x], lastPutPiecePos));
-                cells[i][x].set(-1);
+            if (!cells[i][cx].isEmpty()) {
+                effects.add(effect.create(cells[i][cx], lastPutPiecePos));
+                cells[i][cx].set(-1);
                 cleared++;
             }
         }
@@ -277,17 +307,20 @@ public class Board implements BinSerializable {
 
     // Star Puzzle: converts a special cell (star) back to a normal colored cell
     public void setCell(final int x, final int y, final int colorIndex) {
-        cells[y][x].set(colorIndex);
+        cells[MathUtils.clamp(y, 0, cellCount - 1)][MathUtils.clamp(x, 0, cellCount - 1)]
+                .set(colorIndex);
     }
 
     // Star Puzzle: true when the given cell is empty (level pre-fill support)
     public boolean isEmpty(final int x, final int y) {
-        return cells[y][x].isEmpty();
+        return inBounds(x, y) && cells[y][x].isEmpty();
     }
 
     // Star Puzzle: screen coordinates of the center of the given cell
     public Vector2 cellCenter(final int x, final int y) {
-        return new Vector2(pos.x + (x + 0.5f) * cellSize, pos.y + (y + 0.5f) * cellSize);
+        final int cx = MathUtils.clamp(x, 0, cellCount - 1);
+        final int cy = MathUtils.clamp(y, 0, cellCount - 1);
+        return new Vector2(pos.x + (cx + 0.5f) * cellSize, pos.y + (cy + 0.5f) * cellSize);
     }
 
     public void clearAll(final int clearFromX, final int clearFromY, final IEffectFactory effect) {

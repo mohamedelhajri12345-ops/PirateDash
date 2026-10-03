@@ -105,6 +105,11 @@ public class Cell implements BinSerializable {
     @Override
     public void read(DataInputStream in) throws IOException {
         colorIndex = in.readInt();
+        // Star Puzzle migration: very old saves could hold special power-up
+        // color indices (100..102) inside the board, which crashed rendering.
+        // Those cells simply become empty on load.
+        if (colorIndex >= 100)
+            colorIndex = -1;
     }
 
     //endregion

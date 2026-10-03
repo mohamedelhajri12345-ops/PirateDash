@@ -178,6 +178,11 @@ public class PieceHolder implements BinSerializable {
         return false;
     }
 
+    // Star Puzzle: the piece currently being dragged, or null
+    public Piece getHeldPiece() {
+        return heldPiece > -1 ? pieces[heldPiece] : null;
+    }
+
     public Array<Piece> getAvailablePieces() {
         Array<Piece> result = new Array<Piece>(count);
         for (int i = 0; i < count; ++i)

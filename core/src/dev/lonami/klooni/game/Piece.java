@@ -137,6 +137,30 @@ public class Piece {
 
     //endregion
 
+    // Star Puzzle: true for special power-up pieces (star / bomb / lightning)
+    public boolean isSpecial() {
+        return colorIndex >= SPECIAL_STAR;
+    }
+
+    // Star Puzzle: read-only access for the drag preview overlay
+    public Vector2 getPos() {
+        return pos;
+    }
+
+    public float getCellSize() {
+        return cellSize;
+    }
+
+    // Star Puzzle: explicit factories (also used by the safety tests to
+    // build pieces deterministically instead of relying on randomness)
+    public static Piece special(final int specialColorIndex) {
+        return new Piece(specialColorIndex);
+    }
+
+    public static Piece normal(final int colorIndex, final int rotateCount) {
+        return fromIndex(colorIndex, rotateCount);
+    }
+
     //region Static methods
 
     // Generates a random piece with always the same color for the generated shape.

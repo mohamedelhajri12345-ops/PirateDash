@@ -23,9 +23,11 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.files.FileHandle;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 
@@ -326,6 +328,7 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
 
         scorer.draw(batch);
         board.draw(batch);
+        drawPowerUpPreview(batch);
         holder.update();
         holder.draw(batch);
         bonusParticleHandler.run(batch);
@@ -534,15 +537,79 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
 
     //region Star Puzzle specials
 
+    // Preview colors: golden tint = the drop will work, soft red = it won't
+    private static final Color PREVIEW_VALID = new Color(1f, 0.85f, 0.35f, 0.28f);
+    private static final Color PREVIEW_INVALID = new Color(0.9f, 0.25f, 0.2f, 0.22f);
+
+    // Star Puzzle: power-up targeting preview. While a special piece is
+    // dragged over the board, the exact cells it will affect are highlighted
+    // BEFORE the finger is lifted, so the player always knows what will
+    // happen: 3x3 area for the bomb, full row + column for the lightning,
+    // single cell for the star. The preview uses the SAME screen-to-cell
+    // conversion as the actual drop, so it can never lie.
+    private void drawPowerUpPreview(final SpriteBatch batch) {
+        final Piece held = holder.getHeldPiece();
+        if (held == null || !held.isSpecial())
+            return;
+
+        final int x = board.screenToCellX(held);
+        final int y = board.screenToCellY(held);
+        final int n = board.cellCount;
+        if (x < 0 || y < 0 || x >= n || y >= n)
+            return; // outside the board: nothing to preview
+
+        final boolean valid = board.isEmpty(x, y);
+        batch.setColor(valid ? PREVIEW_VALID : PREVIEW_INVALID);
+
+        final float px = board.pos.x, py = board.pos.y, cs = board.cellSize;
+        switch (held.colorIndex) {
+            case Piece.SPECIAL_BOMB: {
+                for (int i = Math.max(0, y - 1); i <= Math.min(n - 1, y + 1); ++i)
+                    for (int j = Math.max(0, x - 1); j <= Math.min(n - 1, x + 1); ++j)
+                        batch.draw(Klooni.theme.cellTexture, px + j * cs, py + i * cs, cs, cs);
+                break;
+            }
+            case Piece.SPECIAL_LIGHTNING: {
+                for (int j = 0; j < n; ++j)
+                    batch.draw(Klooni.theme.cellTexture, px + j * cs, py + y * cs, cs, cs);
+                for (int i = 0; i < n; ++i)
+                    batch.draw(Klooni.theme.cellTexture, px + x * cs, py + i * cs, cs, cs);
+                break;
+            }
+            default: { // star: just the landing cell
+                batch.draw(Klooni.theme.cellTexture, px + x * cs, py + y * cs, cs, cs);
+                break;
+            }
+        }
+
+        // Selected-state glow: soft pulsing halo behind the dragged piece
+        final float pulse = 0.5f + 0.5f * (float) Math.sin((double) System.nanoTime() * 2e-8);
+        batch.setColor(1f, 0.85f, 0.35f, 0.10f + 0.08f * pulse);
+        final Vector2 hp = held.getPos();
+        final float hcs = held.getCellSize();
+        batch.draw(Klooni.theme.cellTexture,
+                hp.x - hcs * 0.35f, hp.y - hcs * 0.35f, hcs * 1.7f, hcs * 1.7f);
+
+        batch.setColor(Color.WHITE);
+    }
+
+    // Executes a dropped power-up piece on the cell where it ACTUALLY landed.
+    // The landing cell comes from Board.putPiece (board.lastPutCellX/Y), the
+    // same code path that validated the drop — the target and the placement
+    // can never disagree. The old code recomputed the cell from the dragged
+    // piece's on-screen center, which lags behind the finger and produced an
+    // off-by-one target: out-of-bounds crashes at the edges and effects that
+    // hit the wrong cells.
     private void handleSpecialPiece(final PieceHolder.DropResult result) {
-        // Board coordinates of the dropped 1x1 piece
-        final int x = MathUtils.round((result.pieceCenter.x - board.pos.x) / board.cellSize - 0.5f);
-        final int y = MathUtils.round((result.pieceCenter.y - board.pos.y) / board.cellSize - 0.5f);
+        final int x = board.lastPutCellX;
+        final int y = board.lastPutCellY;
+        if (x < 0 || y < 0)
+            return; // no landing cell recorded: nothing was placed
 
         switch (result.pieceColorIndex) {
             case Piece.SPECIAL_STAR: {
-                // +150 points, the cell turns into a normal colored cell
-                board.setCell(x, y, 0);
+                // +150 points, the cell becomes a normal colored cell
+                board.setCell(x, y, MathUtils.random(7));
                 Achievements.onSpecialUsed();
                 scorer.addPieceScore(150);
                 bonusParticleHandler.addMessage(board.cellCenter(x, y), "+150");
@@ -556,7 +623,8 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
                 scorer.addPieceScore(clearedCells * 2);
                 bonusParticleHandler.addMessage(board.cellCenter(x, y), "BOOM!");
                 Klooni.playBombSound();
-                shakeTime = 0.55f;
+                // Satisfying but never violent: short, small-amplitude shake
+                shakeTime = 0.3f;
                 Klooni.vibrate(90);
                 break;
             }
@@ -566,7 +634,7 @@ class GameScreen implements Screen, InputProcessor, BinSerializable {
                 scorer.addPieceScore(clearedCells * 2);
                 bonusParticleHandler.addMessage(board.cellCenter(x, y), "ZAP!");
                 Klooni.playComboSound(3);
-                shakeTime = 0.4f;
+                shakeTime = 0.25f;
                 Klooni.vibrate(70);
                 break;
             }
