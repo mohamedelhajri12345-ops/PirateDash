@@ -61,22 +61,17 @@ class Piece private constructor(
                 in 0..2 -> for (i in 0 until rows) for (j in 0 until cols) shape[i][j] = true
                 in 3..6 -> if (rows == 1) for (j in 0 until cols) shape[0][j] = true
                             else for (i in 0 until rows) shape[i][0] = true
-                else -> { // L shapes (7: 2x3, 8: 3x3 L-corner)
-                    val lSize = if (colorIndex == 7) 2 else 3
-                    // Build the L in its unrotated orientation then rotate it
-                    val base = Array(lSize) { BooleanArray(lSize) }
-                    if (colorIndex == 7) {
-                        base[0][0] = true; base[1][0] = true
-                        base[0][1] = true
-                    } else {
-                        for (i in 0 until lSize) base[i][0] = true
-                        base[0][1] = true
-                    }
-                    var rotated = base
-                    repeat(rotateCount and 3) {
-                        rotated = rotateCW(rotated)
-                    }
-                    for (i in 0 until rows) for (j in 0 until cols) shape[i][j] = rotated[i][j]
+                else -> { // L shapes: 7 = L-tetromino in a 2x3 box, 8 = L in a 3x3 box
+                    // Build in the FULL bounding box, then rotate the whole grid;
+                    // rotateCW swaps the dimensions itself, so the shape always
+                    // exactly matches the declared cols/rows (no index can escape)
+                    var g = Array(3) { BooleanArray(if (colorIndex == 7) 2 else 3) }
+                    for (i in 0 until 3) g[i][0] = true   // full left column
+                    g[0][1] = true                         // corner cell
+                    if (colorIndex == 8) g[0][2] = true    // wider foot for the big L
+                    repeat(rotateCount and 3) { g = rotateCW(g) }
+                    require(g.size == rows && g[0].size == cols) { "L shape/box mismatch" }
+                    for (i in 0 until rows) for (j in 0 until cols) shape[i][j] = g[i][j]
                 }
             }
             return Piece(colorIndex, cols, rows, rotateCount, shape)

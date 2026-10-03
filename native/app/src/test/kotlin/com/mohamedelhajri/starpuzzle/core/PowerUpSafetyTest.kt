@@ -125,8 +125,10 @@ class PowerUpSafetyTest {
     fun lPieceRotationsStayValidShapes() {
         for (ci in intArrayOf(7, 8)) for (rot in 0..3) {
             val p = Piece.normal(ci, rot, java.util.Random(1))
-            assertTrue(p.area() == 3 || p.area() == 4)
+            assertTrue("bad L area ${p.area()}", p.area() == 4 || p.area() == 5)
             assertTrue(p.cellCols in 2..3 && p.cellRows in 2..3)
+            // every declared cell of the box is addressable (the old crash)
+            for (i in 0 until p.cellRows) for (j in 0 until p.cellCols) p.filled(i, j)
         }
     }
 
