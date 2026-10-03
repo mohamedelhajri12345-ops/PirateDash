@@ -174,6 +174,10 @@ fun GameScreen(
             sound.play(SoundManager.Sfx.INVALID)
         } else {
             frame++ // placement changed the board — redraw now
+            // daily missions: every placement feeds the day's counters
+            progress.trackDailyMission(
+                lines = event.lines, score = event.points, levelDone = false
+            )
             sound.play(SoundManager.Sfx.PLACE)
             if (event.clearedCells.isNotEmpty()) {
                 clearAnimCells = event.clearedCells
@@ -205,7 +209,13 @@ fun GameScreen(
         if (liveSession.status != GameSession.Status.PLAYING && !resultShown) {
             resultShown = true
             if (liveSession.status == GameSession.Status.WON) {
-                val stars = level.starsFor(liveSession.allowanceLeftFraction())
+                // SURVIVE has no leftover allowance by design — its stars
+                // reward combo skill during the run instead
+                val stars = level.starsFor(
+                    if (level.objectiveType == LevelDefinition.TYPE_SURVIVE)
+                        (liveSession.maxCombo / 3f).coerceAtMost(1f)
+                    else liveSession.allowanceLeftFraction()
+                )
                 earnedStars = stars
                 val recorded = progress.recordLevelResult(level.id, stars, level.rewardCoins)
                 earnedCoins = if (recorded) level.rewardCoins else 0

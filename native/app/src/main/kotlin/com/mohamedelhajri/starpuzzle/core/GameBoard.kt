@@ -99,22 +99,72 @@ class GameBoard(val size: Int = 10) {
         for (y in 0 until size) for (x in 0 until size) cells[y][x] = -1
     }
 
-    /** Deterministic obstacle prefill (level mode). Mirrors the v1.x logic. */
-    fun prefill(seed: Long, densityPercent: Int) {
-        if (densityPercent <= 0) return
+    /**
+     * Deterministic obstacle prefill (level mode). Returns the dirt cells
+     * that actually remain on the board (the CLEANUP objective target).
+     * Pattern 0 is the classic random scatter; 1-5 draw geometric shapes
+     * so every level band looks distinct at a glance.
+     */
+    fun prefill(seed: Long, densityPercent: Int, pattern: Int = 0): List<Pair<Int, Int>> {
+        if (densityPercent <= 0) return emptyList()
         val rng = java.util.Random(seed)
         val target = size * size * densityPercent / 100
-        var placed = 0
-        while (placed < target) {
-            val x = rng.nextInt(size); val y = rng.nextInt(size)
-            if (cells[y][x] < 0) { cells[y][x] = rng.nextInt(8); placed++ }
-            if (rowComplete(y) || colComplete(x)) break // never start with a cleared line
+
+        val candidates: List<Pair<Int, Int>> = when (pattern % 6) {
+            1 -> { // BORDER: the outer ring
+                (0 until size).flatMap { x -> listOf(x to 0, x to size - 1) } +
+                        (1 until size - 1).flatMap { y -> listOf(0 to y, size - 1 to y) }
+            }
+            2 -> { // CHECKERBOARD
+                (0 until size).flatMap { y -> (0 until size).map { x -> x to y } }
+                        .filter { (x, y) -> (x + y) % 2 == 0 }
+            }
+            3 -> { // CORNERS: four blocks
+                val c = size / 3
+                (0 until size).flatMap { y -> (0 until size).map { x -> x to y } }
+                        .filter { (x, y) -> (x < c || x >= size - c) && (y < c || y >= size - c) }
+            }
+            4 -> { // CROSS: middle row + column
+                val m = size / 2
+                (0 until size).map { x -> x to m } + (0 until size).map { y -> m to y }
+            }
+            5 -> { // DIAGONALS
+                (0 until size).flatMap { i -> listOf(i to i, (size - 1 - i) to i) }
+            }
+            else -> emptyList() // 0: classic random scatter
+        }
+
+        val dirt = mutableListOf<Pair<Int, Int>>()
+        fun put(x: Int, y: Int) {
+            cells[y][x] = rng.nextInt(8)
+            dirt.add(x to y)
+        }
+        if (candidates.isEmpty()) {
+            var guard = 0
+            while (dirt.size < target && guard++ < 1000) {
+                val x = rng.nextInt(size); val y = rng.nextInt(size)
+                if (cells[y][x] < 0) put(x, y)
+                if (rowComplete(y) || colComplete(x)) break // never start near a full line
+            }
+        } else {
+            for ((x, y) in candidates) {
+                if (dirt.size >= target) break
+                if (cells[y][x] < 0) put(x, y)
+                if (rowComplete(y) || colComplete(x)) break
+            }
+            var guard = 0 // pattern may run short — top up randomly
+            while (dirt.size < target && guard++ < 1000) {
+                val x = rng.nextInt(size); val y = rng.nextInt(size)
+                if (cells[y][x] < 0) put(x, y)
+            }
         }
         // Never start with an already-completed line waiting on the board
         clearComplete()
         // Always leave a free 2x2 center so the level is playable from move 1
         val c = size / 2
         setCell(c, c, -1); setCell(c - 1, c, -1); setCell(c, c - 1, -1); setCell(c - 1, c - 1, -1)
+        // report only the dirt that truly survived normalization
+        return dirt.filter { cells[it.second][it.first] >= 0 }
     }
 
     fun anyPieceFits(pieces: List<Piece>): Boolean = pieces.any { p ->

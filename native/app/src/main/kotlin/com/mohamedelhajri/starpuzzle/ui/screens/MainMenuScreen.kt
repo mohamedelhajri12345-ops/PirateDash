@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,6 +54,7 @@ import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.ui.theme.PieceSkins
 import com.mohamedelhajri.starpuzzle.ui.theme.SkinState
 import com.mohamedelhajri.starpuzzle.core.GameProgress
+import com.mohamedelhajri.starpuzzle.core.DailyMissions
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
 import kotlin.math.sin
 import kotlin.random.Random
@@ -104,6 +106,7 @@ fun MainMenuScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -205,6 +208,66 @@ fun MainMenuScreen(
                             else
                                 MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // ── Today's missions (3 rotating daily goals) ──
+            var missionsRefresh by remember { mutableStateOf(0) }
+            val missionState = remember(missionsRefresh) {
+                progress.dailyMissionState()
+            }
+            val missions = DailyMissions.forDay(missionState.day)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    "TODAY'S MISSIONS",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+                missions.forEach { mission ->
+                    val value = progress.missionValue(missionState, mission.index)
+                    val claimed = missionState.claimed[mission.index]
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                mission.text.replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "$value / ${mission.target} · +${mission.reward} coins",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        when {
+                            claimed -> Text(
+                                "DONE",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            value >= mission.target -> SmallButton("CLAIM") {
+                                if (progress.claimDailyMission(mission.index)) {
+                                    sound.play(SoundManager.Sfx.COIN)
+                                    missionsRefresh++
+                                }
+                            }
+                            else -> {}
+                        }
                     }
                 }
             }

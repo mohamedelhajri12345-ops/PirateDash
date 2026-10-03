@@ -101,6 +101,9 @@ object LevelCatalog {
 
         val specialChance = if (world >= 7) 10 + (world - 7) * 2 else 5
 
+        // visual prefill pattern rotates through the geometric families
+        val prefillPattern = (world + id / 10) % 6
+
         val rewardCoins = 10 + id / 20 + (if (indexInWorld == 100) 40 else 0)
 
         // ─── v2.3.0 difficulty redesign ───
@@ -117,7 +120,8 @@ object LevelCatalog {
                 val maxMoves = targetLines * 3 + 10 + world
                 LevelDefinition(id, world, indexInWorld, objectiveType,
                     0, targetLines, 0, maxMoves, 0,
-                    prefillDensity, random.nextLong(), specialChance, rewardCoins)
+                    prefillDensity, random.nextLong(), specialChance, rewardCoins,
+                    0, prefillPattern)
             }
             LevelDefinition.TYPE_TIME -> {
                 val timeLimit = 90 + random.nextInt(45)
@@ -126,14 +130,36 @@ object LevelCatalog {
                 val targetScore = Math.round(timeLimit * (1.6f + w * 0.22f + t * 0.35f))
                 LevelDefinition(id, world, indexInWorld, objectiveType,
                     targetScore, 0, 0, 0, timeLimit,
-                    prefillDensity, random.nextLong(), specialChance, rewardCoins)
+                    prefillDensity, random.nextLong(), specialChance, rewardCoins,
+                    0, prefillPattern)
             }
             LevelDefinition.TYPE_COMBO -> {
                 val targetCombo = (2 + w / 3).toInt().coerceIn(2, 5)
                 val maxMoves = 20 + world + random.nextInt(4)
                 LevelDefinition(id, world, indexInWorld, objectiveType,
                     0, 0, targetCombo, maxMoves, 0,
-                    prefillDensity, random.nextLong(), specialChance, rewardCoins)
+                    prefillDensity, random.nextLong(), specialChance, rewardCoins,
+                    0, prefillPattern)
+            }
+            LevelDefinition.TYPE_SURVIVE -> {
+                // place N pieces without the board ever blocking you.
+                // Stars are earned by chaining combos during the run.
+                val targetPieces = (12 + (t * 6).toInt() + (world - 3)).coerceIn(12, 24)
+                LevelDefinition(id, world, indexInWorld, objectiveType,
+                    0, 0, 0, targetPieces, 0,
+                    prefillDensity, random.nextLong(), specialChance, rewardCoins,
+                    targetPieces, prefillPattern)
+            }
+            LevelDefinition.TYPE_CLEANUP -> {
+                // the level opens with a patterned patch of dirt blocks:
+                // clear targetCount of them via lines or power-ups
+                val dirt = 18 + (t * 10).toInt() + (world / 2)
+                val targetBlocks = (dirt * 0.6f).toInt().coerceAtLeast(6)
+                val maxMoves = targetBlocks * 2 + 14 + world
+                LevelDefinition(id, world, indexInWorld, objectiveType,
+                    0, 0, 0, maxMoves, 0,
+                    dirt, random.nextLong(), specialChance, rewardCoins,
+                    targetBlocks, prefillPattern)
             }
             else -> { // TYPE_SCORE
                 val maxMoves = 20 + world + (t * 8).toInt() + random.nextInt(4)
@@ -143,7 +169,8 @@ object LevelCatalog {
                 val targetScore = Math.round(maxMoves * (3.2f + w * 0.6f + t * 1.2f))
                 LevelDefinition(id, world, indexInWorld, objectiveType,
                     targetScore, 0, 0, maxMoves, 0,
-                    prefillDensity, random.nextLong(), specialChance, rewardCoins)
+                    prefillDensity, random.nextLong(), specialChance, rewardCoins,
+                    0, prefillPattern)
             }
         }
     }
@@ -152,36 +179,60 @@ object LevelCatalog {
         if (indexInWorld == 100)
             return if (world >= 8) LevelDefinition.TYPE_TIME else LevelDefinition.TYPE_LINES
 
+        // Variety rule: outside world 1's tutorial, two consecutive levels
+        // NEVER share an objective type, and each world owns a distinct
+        // mechanic flavor (worlds 2+ introduce CLEANUP, worlds 3+ SURVIVE).
         return when (world) {
             1 -> if (indexInWorld % 5 == 0) LevelDefinition.TYPE_LINES else LevelDefinition.TYPE_SCORE
-            2 -> if (indexInWorld % 4 <= 1) LevelDefinition.TYPE_LINES else LevelDefinition.TYPE_SCORE
-            3 -> if (indexInWorld % 3 == 0) LevelDefinition.TYPE_LINES else LevelDefinition.TYPE_SCORE
-            4 -> when {
-                indexInWorld % 3 == 0 -> LevelDefinition.TYPE_TIME
-                indexInWorld % 3 == 1 -> LevelDefinition.TYPE_SCORE
-                else -> LevelDefinition.TYPE_LINES
-            }
-            5 -> when {
-                indexInWorld % 4 == 0 -> LevelDefinition.TYPE_COMBO
+            2 -> when {
+                indexInWorld % 5 == 0 -> LevelDefinition.TYPE_CLEANUP   // cleanup intro
                 indexInWorld % 2 == 0 -> LevelDefinition.TYPE_LINES
                 else -> LevelDefinition.TYPE_SCORE
             }
-            6 -> if (indexInWorld % 3 == 0) LevelDefinition.TYPE_SCORE else LevelDefinition.TYPE_LINES
-            7 -> when {
-                indexInWorld % 4 == 1 -> LevelDefinition.TYPE_COMBO
+            3 -> when {
+                indexInWorld % 5 == 0 -> LevelDefinition.TYPE_SURVIVE   // survive intro
                 indexInWorld % 2 == 0 -> LevelDefinition.TYPE_LINES
                 else -> LevelDefinition.TYPE_SCORE
             }
-            8 -> if (indexInWorld % 3 != 2) LevelDefinition.TYPE_TIME else LevelDefinition.TYPE_COMBO
-            9 -> when {
-                indexInWorld % 2 == 0 -> LevelDefinition.TYPE_COMBO
-                indexInWorld % 3 == 1 -> LevelDefinition.TYPE_TIME
+            4 -> when (indexInWorld % 4) {
+                0 -> LevelDefinition.TYPE_TIME
+                1 -> LevelDefinition.TYPE_SCORE
+                2 -> LevelDefinition.TYPE_CLEANUP
                 else -> LevelDefinition.TYPE_LINES
             }
-            else -> when {
-                indexInWorld % 3 == 1 -> LevelDefinition.TYPE_TIME
-                indexInWorld % 3 == 2 -> LevelDefinition.TYPE_LINES
-                else -> random.nextInt(4)
+            5 -> when (indexInWorld % 4) {
+                0 -> LevelDefinition.TYPE_COMBO
+                1 -> LevelDefinition.TYPE_SCORE
+                2 -> LevelDefinition.TYPE_SURVIVE
+                else -> LevelDefinition.TYPE_LINES
+            }
+            6 -> when (indexInWorld % 5) {
+                0 -> LevelDefinition.TYPE_CLEANUP
+                1, 3 -> LevelDefinition.TYPE_SCORE
+                2 -> LevelDefinition.TYPE_SURVIVE
+                else -> LevelDefinition.TYPE_LINES
+            }
+            7 -> when (indexInWorld % 4) {
+                0 -> LevelDefinition.TYPE_COMBO
+                1 -> LevelDefinition.TYPE_CLEANUP
+                2 -> LevelDefinition.TYPE_LINES
+                else -> LevelDefinition.TYPE_SCORE
+            }
+            8 -> when (indexInWorld % 3) {
+                0 -> LevelDefinition.TYPE_TIME
+                1 -> LevelDefinition.TYPE_CLEANUP
+                else -> LevelDefinition.TYPE_COMBO
+            }
+            9 -> when (indexInWorld % 4) {
+                0 -> LevelDefinition.TYPE_TIME
+                1 -> LevelDefinition.TYPE_COMBO
+                2 -> LevelDefinition.TYPE_SURVIVE
+                else -> LevelDefinition.TYPE_LINES
+            }
+            else -> when (indexInWorld % 3) {
+                0 -> LevelDefinition.TYPE_TIME
+                1 -> LevelDefinition.TYPE_LINES
+                else -> LevelDefinition.TYPE_SURVIVE
             }
         }
     }

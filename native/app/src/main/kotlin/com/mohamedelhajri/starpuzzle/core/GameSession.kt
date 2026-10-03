@@ -42,6 +42,11 @@ class GameSession(
     var status = Status.PLAYING
         private set
 
+    // CLEANUP objective: dirt cells placed by the level prefill
+    private val dirtRemaining = mutableSetOf<Pair<Int, Int>>()
+    private var dirtInitial = 0
+    val dirtCleared: Int get() = dirtInitial - dirtRemaining.size
+
     // MOVE booster: the most recent normal placement (null after specials)
     private var lastPlaced: Piece? = null
     private var lastPlacedX = -1
@@ -62,7 +67,10 @@ class GameSession(
 
     init {
         if (level != null && level.prefillDensity > 0)
-            board.prefill(level.seed, level.prefillDensity)
+            dirtRemaining.addAll(
+                board.prefill(level.seed, level.prefillDensity, level.prefillPattern)
+            )
+        dirtInitial = dirtRemaining.size
         refillTray()
     }
 
@@ -87,6 +95,8 @@ class GameSession(
     fun objectiveProgress(): Int = when (level?.objectiveType) {
         LevelDefinition.TYPE_LINES -> linesCleared
         LevelDefinition.TYPE_COMBO -> maxCombo
+        LevelDefinition.TYPE_SURVIVE -> movesUsed
+        LevelDefinition.TYPE_CLEANUP -> dirtCleared
         else -> score
     }
 
@@ -94,6 +104,8 @@ class GameSession(
         null -> false
         LevelDefinition.TYPE_LINES -> linesCleared >= level.targetLines
         LevelDefinition.TYPE_COMBO -> maxCombo >= level.targetCombo
+        LevelDefinition.TYPE_SURVIVE -> movesUsed >= level.targetCount
+        LevelDefinition.TYPE_CLEANUP -> dirtCleared >= level.targetCount
         else -> score >= level.targetScore
     }
 
@@ -168,6 +180,12 @@ class GameSession(
         val lines = clear.lines
         linesCleared += lines
         points += lines * 10
+
+        // -- cleanup objective: dirt cells consumed by lines or power-ups
+        if (dirtRemaining.isNotEmpty()) {
+            dirtRemaining.removeAll(clear.cells)
+            dirtRemaining.removeAll(powerUpCells)
+        }
 
         // -- combo (consecutive pieces that cleared lines)
         if (lines > 0) {

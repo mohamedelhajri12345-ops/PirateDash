@@ -41,6 +41,10 @@ class PrefsSaveStore(context: Context) : SaveStore {
     override fun loadDailyDone(key: String) = safeBool("daily_$key", false)
     override fun saveDailyDone(key: String) = prefs.edit().putBoolean("daily_$key", true).apply()
 
+    override fun loadMissions(): String = safeString(KEY_MISSIONS, "")
+    override fun saveMissions(state: String) =
+        prefs.edit().putString(KEY_MISSIONS, state).apply()
+
     override fun loadSkin() = safeInt("skin", 0)
     override fun saveSkin(id: Int) = prefs.edit().putInt("skin", id).apply()
 

@@ -16,13 +16,22 @@ data class LevelDefinition(
     val prefillDensity: Int,
     val seed: Long,
     val specialChance: Int,
-    val rewardCoins: Int
+    val rewardCoins: Int,
+    // v2.4 objective variety:
+    //  SURVIVE — place targetCount pieces before the board blocks you
+    //  CLEANUP — clear targetCount dirt cells the level starts with
+    val targetCount: Int = 0,
+    // visual prefill pattern: 0 random, 1 border, 2 checker, 3 corners,
+    // 4 cross, 5 diagonals — every level band looks different
+    val prefillPattern: Int = 0
 ) {
     companion object {
         const val TYPE_SCORE = 0
         const val TYPE_LINES = 1
         const val TYPE_TIME = 2
         const val TYPE_COMBO = 3
+        const val TYPE_SURVIVE = 4
+        const val TYPE_CLEANUP = 5
     }
 
     val isBoss: Boolean get() = indexInWorld == 100
@@ -32,12 +41,16 @@ data class LevelDefinition(
         TYPE_LINES -> "CLEAR $targetLines LINES"
         TYPE_TIME -> "SCORE $targetScore IN ${timeLimit}s"
         TYPE_COMBO -> "COMBO x$targetCombo"
+        TYPE_SURVIVE -> "PLACE $targetCount PIECES"
+        TYPE_CLEANUP -> "CLEAR $targetCount BLOCKS"
         else -> "SURVIVE"
     }
 
     fun target(): Int = when (objectiveType) {
         TYPE_LINES -> targetLines
         TYPE_COMBO -> targetCombo
+        TYPE_SURVIVE -> targetCount
+        TYPE_CLEANUP -> targetCount
         else -> targetScore
     }
 

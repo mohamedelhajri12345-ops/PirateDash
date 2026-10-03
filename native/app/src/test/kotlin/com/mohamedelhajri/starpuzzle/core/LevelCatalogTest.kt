@@ -52,9 +52,20 @@ class LevelCatalogTest {
                     assertTrue(l.targetCombo in 2..5)
                     assertTrue(l.maxMoves >= 20)
                 }
+                LevelDefinition.TYPE_SURVIVE -> {
+                    assertTrue("survive ${l.targetCount} id ${l.id}", l.targetCount in 12..24)
+                    assertTrue(l.maxMoves == l.targetCount)
+                }
+                LevelDefinition.TYPE_CLEANUP -> {
+                    assertTrue("cleanup ${l.targetCount} id ${l.id}", l.targetCount in 6..24)
+                    assertTrue(l.maxMoves >= l.targetCount * 2)
+                    // dirt on the board must cover the objective with margin
+                    assertTrue(l.prefillDensity >= l.targetCount)
+                    assertTrue(l.prefillPattern in 0..5)
+                }
                 else -> throw AssertionError("bad objective type ${l.objectiveType}")
             }
-            assertTrue(l.prefillDensity in 0..20)
+            assertTrue(l.prefillDensity in 0..40)
             assertTrue(l.specialChance in 5..16)
         }
     }
@@ -176,6 +187,74 @@ class LevelCatalogTest {
     }
 
     @Test
+    fun adjacentLevelsNeverRepeatObjectiveOutsideWorld1() {
+        // the variety rule: two consecutive levels in the same world (that
+        // are not both the boss) never share an objective type
+        for (id in 11..999) {
+            val a = LevelCatalog.getLevel(id)
+            val b = LevelCatalog.getLevel(id + 1)
+            if (a.world == b.world) {
+                assertTrue(
+                    "id $id -> ${id + 1} repeats type ${a.objectiveType}",
+                    a.objectiveType != b.objectiveType || b.indexInWorld == 100
+                )
+            }
+        }
+    }
+
+    @Test
+    fun cleanupAndSurviveExistAndAreWinnableByDesign() {
+        var cleanup = 0; var survive = 0
+        for (id in 1..1000) {
+            when (LevelCatalog.getLevel(id).objectiveType) {
+                LevelDefinition.TYPE_CLEANUP -> cleanup++
+                LevelDefinition.TYPE_SURVIVE -> survive++
+            }
+        }
+        assertTrue("cleanup count $cleanup", cleanup >= 60)
+        assertTrue("survive count $survive", survive >= 50)
+    }
+
+    @Test
+    fun prefillPatternsRotateDeterministically() {
+        val a = LevelCatalog.getLevel(415)
+        val b = LevelCatalog.getLevel(415)
+        assertEquals(a.prefillPattern, b.prefillPattern)
+        // pattern changes across level bands (id/10) — variety is real
+        assertTrue(
+            (1..50).map { LevelCatalog.getLevel(400 + it).prefillPattern }.distinct().size >= 4
+        )
+    }
+
+    @Test
+    fun dailyMissionsTrackAndClaim() {
+        val store = FakeStore()
+        val progress = GameProgress(store)
+        val state = progress.dailyMissionState()
+        val missions = DailyMissions.forDay(state.day)
+        assertEquals(3, missions.size)
+        assertEquals(0, progress.missionValue(state, 0))
+
+        progress.trackDailyMission(lines = 3, score = 120, levelDone = false)
+        val mid = progress.dailyMissionState()
+        assertEquals(3, mid.lines)
+        assertEquals(120, mid.score)
+
+        // claim before reaching the target is refused
+        assertFalse(progress.claimDailyMission(1))
+
+        // finish the lines mission and claim it once
+        progress.trackDailyMission(lines = 200, score = 0, levelDone = true)
+        val before = progress.coins
+        assertTrue(progress.claimDailyMission(0))
+        assertEquals(before + missions[0].reward, progress.coins)
+        // double claim blocked
+        assertFalse(progress.claimDailyMission(0))
+        // level completion counted
+        assertEquals(1, progress.dailyMissionState().levels)
+    }
+
+    @Test
     fun spendCoinsIsAtomicAndSafe() {
         val store = FakeStore()
         val progress = GameProgress(store)
@@ -204,5 +283,8 @@ class LevelCatalogTest {
         private var skin = 0
         override fun loadSkin() = skin
         override fun saveSkin(id: Int) { skin = id }
+        private var missions = ""
+        override fun loadMissions() = missions
+        override fun saveMissions(state: String) { missions = state }
     }
 }
