@@ -52,9 +52,38 @@ object LevelCatalog {
         )
     }
 
+    /**
+     * Handcrafted tutorial arc (levels 1-10, world 1): every level is
+     * designed by hand to teach exactly ONE thing, with arithmetic-level
+     * winnability margins (avg placement ~2.7 pts, a line clear = +10).
+     */
+    private fun opener(id: Int, type: Int, target: Int, moves: Int): LevelDefinition =
+        LevelDefinition(
+            id, 1, id, type,
+            if (type == LevelDefinition.TYPE_SCORE) target else 0,
+            if (type == LevelDefinition.TYPE_LINES) target else 0,
+            0, moves, 0,
+            0, id * 2654435761L + SEED_SALT, 5, 10 + id
+        )
+
+    private val OPENERS = arrayOf(
+        opener(1, LevelDefinition.TYPE_SCORE, 60, 25),  // place-and-win: pure placement reaches ~65
+        opener(2, LevelDefinition.TYPE_SCORE, 80, 24),  // first clears genuinely help
+        opener(3, LevelDefinition.TYPE_LINES, 1, 25),   // teaches WHAT a line clear is
+        opener(4, LevelDefinition.TYPE_SCORE, 100, 24),
+        opener(5, LevelDefinition.TYPE_LINES, 2, 26),
+        opener(6, LevelDefinition.TYPE_SCORE, 120, 25),
+        opener(7, LevelDefinition.TYPE_LINES, 2, 22),   // a tighter allowance, gently
+        opener(8, LevelDefinition.TYPE_SCORE, 140, 26), // specials noticed at 5%
+        opener(9, LevelDefinition.TYPE_LINES, 3, 30),
+        opener(10, LevelDefinition.TYPE_LINES, 4, 35)   // graduation to real pacing
+    )
+
     /** Build a level from its id. Pure and deterministic. */
     fun getLevel(id: Int): LevelDefinition {
         require(id in 1..TOTAL_LEVELS) { "level id out of range: $id" }
+        // the tutorial arc is handcrafted; everything after follows the curve
+        if (id in 1..10) return OPENERS[id - 1]
 
         val world = (id - 1) / LEVELS_PER_WORLD + 1
         val indexInWorld = (id - 1) % LEVELS_PER_WORLD + 1

@@ -41,6 +41,9 @@ class PrefsSaveStore(context: Context) : SaveStore {
     override fun loadDailyDone(key: String) = safeBool("daily_$key", false)
     override fun saveDailyDone(key: String) = prefs.edit().putBoolean("daily_$key", true).apply()
 
+    override fun loadSkin() = safeInt("skin", 0)
+    override fun saveSkin(id: Int) = prefs.edit().putInt("skin", id).apply()
+
     override fun loadSound() = safeBool(KEY_SOUND, true)
     override fun saveSound(enabled: Boolean) = prefs.edit().putBoolean(KEY_SOUND, enabled).apply()
 

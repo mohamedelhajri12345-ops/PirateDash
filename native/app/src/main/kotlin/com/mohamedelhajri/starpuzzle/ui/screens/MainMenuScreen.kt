@@ -10,6 +10,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +50,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
+import com.mohamedelhajri.starpuzzle.ui.theme.PieceSkins
+import com.mohamedelhajri.starpuzzle.ui.theme.SkinState
 import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
 import kotlin.math.sin
@@ -142,11 +147,66 @@ fun MainMenuScreen(
                 SmallButton("DAILY") { onDaily() }
 
                 Text(
-                    "v2.3.0",
+                    "v2.4.0",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
                     modifier = Modifier.padding(top = 18.dp)
                 )
+            }
+
+            Spacer(Modifier.height(28.dp))
+
+            // ── Piece color themes (from the reference video) ──
+            Text(
+                "THEMES",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                PieceSkins.forEachIndexed { i, skin ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .clickable {
+                                SkinState.active = i
+                                progress.saveSkin(i)
+                                sound.play(SoundManager.Sfx.PLACE)
+                            }
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .clip(CircleShape)
+                                .background(skin.colors[1])
+                                .border(
+                                    if (SkinState.active == i) 2.dp else 1.dp,
+                                    if (SkinState.active == i)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                            .copy(alpha = 0.4f),
+                                    CircleShape
+                                )
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            skin.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (SkinState.active == i)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         }
     }

@@ -20,6 +20,8 @@ import com.mohamedelhajri.starpuzzle.core.LevelCatalog
 import com.mohamedelhajri.starpuzzle.ui.screens.GameScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.MainMenuScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.WorldMapScreen
+import com.mohamedelhajri.starpuzzle.ui.theme.PieceSkins
+import com.mohamedelhajri.starpuzzle.ui.theme.SkinState
 import com.mohamedelhajri.starpuzzle.ui.theme.StarPuzzleTheme
 
 sealed class Screen {
@@ -50,7 +52,7 @@ class MainActivity : ComponentActivity() {
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             runCatching {
                 java.io.File(filesDir, "crash.log").writeText(
-                    "version=2.3.0\n" + android.util.Log.getStackTraceString(throwable)
+                    "version=2.4.0\n" + android.util.Log.getStackTraceString(throwable)
                 )
             }
             previous?.uncaughtException(thread, throwable)
@@ -63,6 +65,8 @@ fun StarPuzzleApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val store = remember { PrefsSaveStore(context) }
     val sound = remember { SoundManager(context) }
+    // restore the saved piece-color skin (coerced against catalog size)
+    SkinState.active = store.loadSkin().coerceIn(0, PieceSkins.size - 1)
     val progress = remember { GameProgress(store) }
 
     var screen by remember { mutableStateOf<Screen>(Screen.Menu) }

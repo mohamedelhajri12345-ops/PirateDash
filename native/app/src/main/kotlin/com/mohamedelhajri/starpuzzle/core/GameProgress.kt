@@ -17,6 +17,8 @@ interface SaveStore {
     fun saveSound(enabled: Boolean)
     fun loadHaptics(): Boolean
     fun saveHaptics(enabled: Boolean)
+    fun loadSkin(): Int
+    fun saveSkin(id: Int)
 }
 
 /** Progress helper over a SaveStore. */
@@ -43,6 +45,9 @@ class GameProgress(private val store: SaveStore) {
         store.saveCoins(store.loadCoins() + rewardCoins)
         return true
     }
+
+    fun loadSkin(): Int = store.loadSkin()
+    fun saveSkin(id: Int) = store.saveSkin(id)
 
     /** Atomic coin spend for boosters: false when not enough coins. */
     fun spendCoins(amount: Int): Boolean {

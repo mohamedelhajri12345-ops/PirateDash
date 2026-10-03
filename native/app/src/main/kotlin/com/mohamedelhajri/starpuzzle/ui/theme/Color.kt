@@ -19,28 +19,16 @@ val DangerRed = Color(0xFFEF5350)
 val TextPrimary = Color(0xFFF5F7FF)
 val TextSecondary = Color(0xFF9FA8CC)
 
-// One color per piece shape (9 shapes = 9 colors). The size is
-// contract-checked against the core so the palette can never again ship
+// One color per piece shape (9 shapes = 9 colors), per selectable skin.
+// The size contract lives in PieceSkins.kt: it can never again ship
 // shorter than the piece list (the v2.0.x "crash on any move" class).
-val PieceColors = listOf(
-    Color(0xFFEF5350), // red
-    Color(0xFFFFA726), // orange
-    Color(0xFFFFEE58), // yellow
-    Color(0xFF66BB6A), // green
-    Color(0xFF42A5F5), // blue
-    Color(0xFF7E57C2), // purple
-    Color(0xFFEC407A), // pink
-    Color(0xFF26C6DA), // cyan
-    Color(0xFFAB47BC)  // violet — the 9th shape (was missing in v2.0.x)
-).also {
-    check(it.size == com.mohamedelhajri.starpuzzle.core.Piece.PIECE_COLOR_COUNT) {
-        "PieceColors must hold exactly PIECE_COLOR_COUNT colors"
-    }
-}
+private val PieceColors get() = PieceSkins[SkinState.active].colors
 
 /** Safe palette lookup — any index resolves to a real color, never a crash. */
-fun pieceColor(index: Int): Color =
-    PieceColors[((index % PieceColors.size) + PieceColors.size) % PieceColors.size]
+fun pieceColor(index: Int): Color {
+    val colors = PieceColors
+    return colors[((index % colors.size) + colors.size) % colors.size]
+}
 
 val SpecialStarColor = Color(0xFFFFD54F)
 val SpecialBombColor = Color(0xFF8D6E63)

@@ -39,7 +39,7 @@ class LevelCatalogTest {
                     assertTrue(l.maxMoves >= 20)
                 }
                 LevelDefinition.TYPE_LINES -> {
-                    assertTrue("lines ${l.targetLines} id ${l.id}", l.targetLines in 2..12)
+                    assertTrue("lines ${l.targetLines} id ${l.id}", l.targetLines in 1..12)
                     assertTrue(l.maxMoves >= 15)
                     // a line every ~3 moves must always be possible
                     assertTrue(l.maxMoves >= l.targetLines * 3)
@@ -147,6 +147,35 @@ class LevelCatalogTest {
     }
 
     @Test
+    fun tutorialArcIsHandcraftedAndTeachesInOrder() {
+        // level 1: score by placement; level 3: the first single-line lesson
+        assertEquals(LevelDefinition.TYPE_SCORE, LevelCatalog.getLevel(1).objectiveType)
+        assertEquals(60, LevelCatalog.getLevel(1).targetScore)
+        assertEquals(25, LevelCatalog.getLevel(1).maxMoves)
+        assertEquals(LevelDefinition.TYPE_LINES, LevelCatalog.getLevel(3).objectiveType)
+        assertEquals(1, LevelCatalog.getLevel(3).targetLines)
+        // world 1 tutorial: no prefill, no time pressure, 5% specials
+        for (id in 1..10) {
+            val l = LevelCatalog.getLevel(id)
+            assertEquals(0, l.prefillDensity)
+            assertEquals(0, l.timeLimit)
+            assertEquals(5, l.specialChance)
+            assertTrue(l.maxMoves >= 22)
+        }
+        // level 11 continues the generated curve seamlessly
+        assertTrue(LevelCatalog.getLevel(11).maxMoves >= 20)
+    }
+
+    @Test
+    fun skinPersistRoundTrips() {
+        val store = FakeStore()
+        val progress = GameProgress(store)
+        assertEquals(0, progress.loadSkin())
+        progress.saveSkin(3)
+        assertEquals(3, progress.loadSkin())
+    }
+
+    @Test
     fun spendCoinsIsAtomicAndSafe() {
         val store = FakeStore()
         val progress = GameProgress(store)
@@ -172,5 +201,8 @@ class LevelCatalogTest {
         override fun saveSound(enabled: Boolean) {}
         override fun loadHaptics() = true
         override fun saveHaptics(enabled: Boolean) {}
+        private var skin = 0
+        override fun loadSkin() = skin
+        override fun saveSkin(id: Int) { skin = id }
     }
 }
