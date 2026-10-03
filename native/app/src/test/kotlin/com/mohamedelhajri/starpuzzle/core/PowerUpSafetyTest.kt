@@ -2,6 +2,8 @@ package com.mohamedelhajri.starpuzzle.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -100,6 +102,72 @@ class PowerUpSafetyTest {
     fun lightningOutOfRangeIsClamped() {
         assertEquals(19, newBoard().apply { fill(this) }.clearCross(-3, -3).size)
         assertEquals(19, newBoard().apply { fill(this) }.clearCross(42, 42).size)
+    }
+
+    // ── MOVE booster (lift the last placed piece back) ──
+
+    @Test
+    fun takeBackReturnsPieceToTrayAndRefunds() {
+        val s = GameSession(LevelCatalog.getLevel(1))
+        val piece = s.tray.first { !it.isSpecial }
+        val idx = s.tray.indexOf(piece)
+        var ev: GameSession.PlaceEvent? = null
+        var px = -1
+        var py = -1
+        outer@ for (y in 0 until 10) for (x in 0 until 10) {
+            ev = s.placePiece(idx, x, y)
+            if (ev != null) { px = x; py = y; break@outer }
+        }
+        assertNotNull("piece must fit somewhere on an empty board", ev)
+        assertTrue(s.canTakeBack())
+        val movesAfter = s.movesUsed
+        val back = s.takeBackLast()
+        assertNotNull(back)
+        assertEquals(piece.area(), back!!.area())
+        assertEquals(movesAfter - 1, s.movesUsed)
+        for (i in 0 until piece.cellRows) for (j in 0 until piece.cellCols)
+            if (piece.filled(i, j))
+                assertEquals("cell (${px + j},${py + i}) must be empty again",
+                    -1, s.board.colorAt(px + j, py + i))
+        assertEquals(4, s.tray.size)
+        assertNull("only the very last piece is liftable", s.takeBackLast())
+    }
+
+    @Test
+    fun takeBackBlockedWhenCellsWereChanged() {
+        val s = GameSession(LevelCatalog.getLevel(1))
+        val piece = s.tray.first { !it.isSpecial }
+        val idx = s.tray.indexOf(piece)
+        var px = -1
+        var py = -1
+        outer@ for (y in 0 until 10) for (x in 0 until 10) {
+            if (s.placePiece(idx, x, y) != null) { px = x; py = y; break@outer }
+        }
+        assertTrue(px >= 0)
+        assertTrue(s.canTakeBack())
+        // a clear changed one of its cells — lifting must now be impossible
+        s.board.setCell(px, py, (piece.colorIndex + 1) % 9)
+        assertFalse(s.canTakeBack())
+        assertNull(s.takeBackLast())
+        assertTrue("failed lift must not touch the board", s.board.colorAt(px, py) >= 0)
+    }
+
+    @Test
+    fun takeBackBlockedAfterGameOver() {
+        val s = GameSession(LevelCatalog.getLevel(1))
+        while (s.status == GameSession.Status.PLAYING) {
+            val idx = s.tray.indexOfFirst { !it.isSpecial }
+            if (idx < 0) break
+            var placed = false
+            for (y in 0 until 10) for (x in 0 until 10) {
+                if (!placed && s.placePiece(idx, x, y) != null) placed = true
+            }
+            if (!placed) break
+        }
+        if (s.status != GameSession.Status.PLAYING) {
+            assertFalse(s.canTakeBack())
+            assertNull(s.takeBackLast())
+        }
     }
 
     // ── color palette contract (the v2.0.x root-cause crash class) ──

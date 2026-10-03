@@ -120,6 +120,17 @@ class LevelCatalogTest {
         assertTrue(progress.worldUnlocked(2))
     }
 
+    @Test
+    fun spendCoinsIsAtomicAndSafe() {
+        val store = FakeStore()
+        val progress = GameProgress(store)
+        store.saveCoins(20)
+        assertTrue(progress.spendCoins(15))
+        assertEquals(5, progress.coins)
+        assertFalse(progress.spendCoins(6))
+        assertEquals(5, progress.coins)
+    }
+
     class FakeStore : SaveStore {
         val savedStars = mutableMapOf<Int, Int>()
         var coins = 0

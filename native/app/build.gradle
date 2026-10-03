@@ -11,8 +11,8 @@ android {
         applicationId "com.mohamedelhajri.starpuzzle"
         minSdk 21
         targetSdk 34
-        versionCode 1002
-        versionName "2.1.0"
+        versionCode 1003
+        versionName "2.2.0"
     }
 
     signingConfigs {

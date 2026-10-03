@@ -44,6 +44,14 @@ class GameProgress(private val store: SaveStore) {
         return true
     }
 
+    /** Atomic coin spend for boosters: false when not enough coins. */
+    fun spendCoins(amount: Int): Boolean {
+        val c = store.loadCoins()
+        if (c < amount) return false
+        store.saveCoins(c - amount)
+        return true
+    }
+
     fun isDailyDone(key: String): Boolean = store.loadDailyDone(key)
     fun markDailyDone(key: String) = store.saveDailyDone(key)
 }

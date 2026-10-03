@@ -14,8 +14,8 @@ object LevelCatalog {
 
     private val WORLD_NAMES = arrayOf(
         "Green Valley", "Golden Desert", "Coral Ocean", "Frozen Peaks",
-        "Ember Volcano", "Deep Forest", "Neon City", "Candy Wonderland",
-        "Cosmic Space", "Mystery Realm"
+        "Ember Volcano", "Dino Jungle", "Neon City", "Candy Wonderland",
+        "Cosmic Space", "Sunken Treasure"
     )
 
     private val WORLD_UNLOCK_STARS = intArrayOf(0, 30, 70, 120, 170, 220, 270, 320, 370, 420)

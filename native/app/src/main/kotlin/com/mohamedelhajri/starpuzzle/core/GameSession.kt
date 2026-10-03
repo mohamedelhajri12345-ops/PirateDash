@@ -42,6 +42,12 @@ class GameSession(
     var status = Status.PLAYING
         private set
 
+    // MOVE booster: the most recent normal placement (null after specials)
+    private var lastPlaced: Piece? = null
+    private var lastPlacedX = -1
+    private var lastPlacedY = -1
+    private var lastPlacedPoints = 0
+
     // Events the UI can play feedback for
     data class PlaceEvent(
         val placedCells: List<Pair<Int, Int>>,
@@ -118,6 +124,13 @@ class GameSession(
                     if (piece.filled(i, j)) placedCells.add(x + j to y + i)
         }
         require(board.putPiece(piece, x, y))
+        if (piece.isSpecial) {
+            lastPlaced = null // specials vanish into their effect — nothing to lift
+        } else {
+            lastPlaced = piece
+            lastPlacedX = x
+            lastPlacedY = y
+        }
         tray.removeAt(trayIndex)
         refillTray()
         movesUsed++
@@ -166,6 +179,7 @@ class GameSession(
         }
 
         score += points
+        if (lastPlaced != null) lastPlacedPoints = points
 
         // -- objective / failure
         val objectiveDone = level != null && objectiveComplete()
@@ -184,6 +198,43 @@ class GameSession(
             placedCells, clear.cells, powerUpCells, powerUpKind,
             combo, points, lines, blocked
         )
+    }
+
+    /**
+     * MOVE booster: is the last placed piece still liftable intact?
+     * Every one of its cells must still hold its exact color — if a line
+     * clear or power-up touched them, it can never be lifted (no guessing).
+     */
+    fun canTakeBack(): Boolean {
+        if (status != Status.PLAYING) return false
+        val p = lastPlaced ?: return false
+        for (i in 0 until p.cellRows)
+            for (j in 0 until p.cellCols)
+                if (p.filled(i, j)) {
+                    val x = lastPlacedX + j
+                    val y = lastPlacedY + i
+                    if (x !in 0 until board.size || y !in 0 until board.size) return false
+                    if (board.colorAt(x, y) != p.colorIndex) return false
+                }
+        return true
+    }
+
+    /**
+     * MOVE booster: lifts the last placed piece back into the tray and
+     * refunds its move and points. Never throws; null when unavailable.
+     */
+    fun takeBackLast(): Piece? {
+        if (!canTakeBack()) return null
+        val p = lastPlaced ?: return null
+        for (i in 0 until p.cellRows)
+            for (j in 0 until p.cellCols)
+                if (p.filled(i, j)) board.setCell(lastPlacedX + j, lastPlacedY + i, -1)
+        lastPlaced = null
+        movesUsed--
+        score -= lastPlacedPoints
+        if (score < 0) score = 0
+        tray.add(p)
+        return p
     }
 
     companion object {

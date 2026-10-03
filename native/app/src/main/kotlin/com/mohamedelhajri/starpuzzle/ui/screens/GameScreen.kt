@@ -65,12 +65,18 @@ import com.mohamedelhajri.starpuzzle.core.GameSession
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
 import com.mohamedelhajri.starpuzzle.core.Piece
 import com.mohamedelhajri.starpuzzle.ui.theme.pieceColor
+import com.mohamedelhajri.starpuzzle.ui.worlds.WorldBackdrop
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.PaddingValues
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialBombColor
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialLightningColor
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialStarColor
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.min
+
+/** Coin cost of the MOVE booster (lift the last placed piece back). */
+private const val MOVE_COST = 15
 
 /**
  * The gameplay screen. The board is the hero: centered, clean, with live
@@ -102,6 +108,7 @@ fun GameScreen(
     var trayOrigin by remember { mutableStateOf(Offset.Zero) }
     var trayHeight by remember { mutableStateOf(0f) }
     var trayWidth by remember { mutableStateOf(0f) }
+    var slotPx by remember { mutableStateOf(0f) }
 
     // drag state
     var dragIndex by remember { mutableStateOf(-1) }
@@ -214,6 +221,12 @@ fun GameScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        // Phase B: the level's world identity animates behind the board
+        WorldBackdrop(
+            world = level.world,
+            modifier = Modifier.fillMaxSize()
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -320,7 +333,35 @@ fun GameScreen(
                 )
             }
 
-            Spacer(Modifier.weight(1f))
+            // ── MOVE booster: lift the last placed piece back ──
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        if (liveSession.takeBackLast() != null) {
+                            progress.spendCoins(MOVE_COST)
+                            sound.play(SoundManager.Sfx.COIN)
+                            frame++
+                        }
+                    },
+                    enabled = liveSession.status == GameSession.Status.PLAYING &&
+                            liveSession.canTakeBack() &&
+                            progress.coins >= MOVE_COST,
+                    border = BorderStroke(
+                        1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp)
+                ) {
+                    Text("MOVE LAST · $MOVE_COST", style = MaterialTheme.typography.labelMedium)
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             // ── Piece tray ──
             Box(
@@ -333,6 +374,7 @@ fun GameScreen(
                         trayWidth = coords.size.width.toFloat()
                     }
             ) {
+                val slotSize = if (liveSession.tray.size > 3) 72.dp else 84.dp
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -341,7 +383,10 @@ fun GameScreen(
                     liveSession.tray.forEachIndexed { index, piece ->
                         Canvas(
                             modifier = Modifier
-                                .size(84.dp)
+                                .size(slotSize)
+                                .onGloballyPositioned { c ->
+                                    if (c.size.width > 0) slotPx = c.size.width.toFloat()
+                                }
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(MaterialTheme.colorScheme.surface)
                                 .border(
@@ -409,9 +454,26 @@ fun GameScreen(
                             val inTrayY = pos.y >= trayOrigin.y &&
                                     pos.y <= trayOrigin.y + trayHeight
                             if (inTrayY && liveSession.tray.isNotEmpty()) {
-                                val slot = trayWidth / liveSession.tray.size
-                                val idx = ((pos.x - trayOrigin.x) / slot).toInt()
-                                        .coerceIn(0, liveSession.tray.size - 1)
+                                // Hit-test against the REAL slot layout (Row
+                                // SpaceEvenly puts a gap around each piece), not
+                                // a naive equal split — that split was why the
+                                // wrong piece got picked up.
+                                val n = liveSession.tray.size
+                                val idx = if (slotPx > 0f) {
+                                    val gap = ((trayWidth - n * slotPx) / (n + 1)).coerceAtLeast(0f)
+                                    var best = 0
+                                    var bestDist = Float.MAX_VALUE
+                                    for (i in 0 until n) {
+                                        val cx = trayOrigin.x + gap +
+                                                i * (slotPx + gap) + slotPx / 2f
+                                        val d = kotlin.math.abs(pos.x - cx)
+                                        if (d < bestDist) { bestDist = d; best = i }
+                                    }
+                                    best
+                                } else {
+                                    ((pos.x - trayOrigin.x) / (trayWidth / n))
+                                        .toInt().coerceIn(0, n - 1)
+                                }
                                 dragIndex = idx
                                 dragPos = pos
                                 updateDragTarget()

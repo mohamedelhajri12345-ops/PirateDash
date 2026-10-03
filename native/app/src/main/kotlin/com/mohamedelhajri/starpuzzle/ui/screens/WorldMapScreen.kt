@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
+import com.mohamedelhajri.starpuzzle.ui.worlds.WorldBackdrop
 
 /**
  * World map: an adventure overview. Pick a world, see its 100 level nodes
@@ -62,11 +63,17 @@ fun WorldMapScreen(
     val firstUnfinished = progress.firstUnfinished()
     var selectedWorld by remember { mutableIntStateOf((firstUnfinished - 1) / 100 + 1) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Phase B: the selected world's identity behind its map
+        WorldBackdrop(
+            world = selectedWorld,
+            modifier = Modifier.fillMaxSize()
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.35f))
+        ) {
         // ── Header ──
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -245,6 +252,7 @@ private fun LevelNode(
                         .alpha(0.4f.coerceAtLeast(if (i < stars) 1f else 0.4f))
                 )
             }
+        }
         }
     }
 }
