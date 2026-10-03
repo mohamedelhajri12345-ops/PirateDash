@@ -68,8 +68,8 @@ import com.mohamedelhajri.starpuzzle.ui.theme.PieceColors
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialBombColor
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialLightningColor
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialStarColor
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withFrameNanos
 import kotlin.math.min
 
 /**
