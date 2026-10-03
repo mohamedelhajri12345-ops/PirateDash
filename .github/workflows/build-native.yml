@@ -1,0 +1,38 @@
+name: Build Native Kotlin APK (v2.x)
+
+on:
+  push:
+    branches: [main]
+    paths: ['native/**', '.github/workflows/build-native.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: native
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Run core unit tests (power-up safety + 1000 levels)
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:testDebugUnitTest --no-daemon
+
+      - name: Build release APK
+        run: |
+          ./gradlew :app:assembleRelease --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StarPuzzleNative-APK
+          path: native/app/build/outputs/apk/release/*.apk

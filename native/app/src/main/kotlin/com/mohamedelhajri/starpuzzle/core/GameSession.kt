@@ -1,0 +1,192 @@
+package com.mohamedelhajri.starpuzzle.core
+
+/**
+ * One gameplay session (endless or a level from the catalog).
+ * Pure Kotlin: the UI drives it and observes its state. All the v1.x
+ * crash-lessons are baked in:
+ *  - power-ups execute on the TRUE landing cell (board.lastPutX/Y)
+ *  - the board never stores special ids
+ *  - drops are validated before anything executes
+ */
+class GameSession(
+    val level: LevelDefinition?,
+    seed: Long = System.nanoTime()
+) {
+    val board = GameBoard()
+    private val rng = java.util.Random(seed)
+
+    // Tray
+    var tray = mutableListOf<Piece>()
+        private set
+
+    // Score / combo
+    var score = 0
+        private set
+    var combo = 0
+        private set
+    var maxCombo = 0
+        private set
+    var linesCleared = 0
+        private set
+    var movesUsed = 0
+        private set
+
+    // Level objective allowance
+    var timeLeft = level?.timeLimit?.toFloat() ?: 0f
+        private set
+    var movesLeft: Int get() = if (level != null && level.maxMoves > 0) level.maxMoves - movesUsed else -1
+        private set(_) {}
+
+    enum class Status { PLAYING, WON, LOST }
+
+    var status = Status.PLAYING
+        private set
+
+    // Events the UI can play feedback for
+    data class PlaceEvent(
+        val placedCells: List<Pair<Int, Int>>,
+        val clearedCells: List<Pair<Int, Int>>,
+        val powerUpCells: List<Pair<Int, Int>>,
+        val powerUpKind: Int, // 0 none, else Piece.SPECIAL_*
+        val combo: Int,
+        val points: Int,
+        val lines: Int,
+        val blocked: Boolean
+    )
+
+    init {
+        if (level != null && level.prefillDensity > 0)
+            board.prefill(level.seed, level.prefillDensity)
+        refillTray()
+    }
+
+    fun specialChance(): Int = level?.specialChance ?: 5
+
+    private fun refillTray() {
+        while (tray.size < TRAY_SIZE) tray.add(Piece.random(specialChance(), rng))
+    }
+
+    /** Called by the UI every frame with the elapsed seconds. */
+    fun tick(dt: Float) {
+        if (status != Status.PLAYING || level == null) return
+        if (level.timeLimit > 0) {
+            timeLeft -= dt
+            if (timeLeft <= 0f) {
+                timeLeft = 0f
+                status = if (objectiveComplete()) Status.WON else Status.LOST
+            }
+        }
+    }
+
+    fun objectiveProgress(): Int = when (level?.objectiveType) {
+        LevelDefinition.TYPE_LINES -> linesCleared
+        LevelDefinition.TYPE_COMBO -> maxCombo
+        else -> score
+    }
+
+    private fun objectiveComplete(): Boolean = when (level?.objectiveType) {
+        null -> false
+        LevelDefinition.TYPE_LINES -> linesCleared >= level.targetLines
+        LevelDefinition.TYPE_COMBO -> maxCombo >= level.targetCombo
+        else -> score >= level.targetScore
+    }
+
+    /** Fraction of the moves/time allowance left when the objective completes. */
+    fun allowanceLeftFraction(): Float {
+        val l = level ?: return 0f
+        if (l.timeLimit > 0) return (timeLeft / l.timeLimit).coerceAtLeast(0f)
+        if (l.maxMoves > 0) return (movesLeft.coerceAtLeast(0)).toFloat() / l.maxMoves
+        return 0f
+    }
+
+    /**
+     * Tries to place tray piece [trayIndex] at grid (x, y).
+     * Runs the whole pipeline: validation -> place -> power-up -> line clear
+     * -> score -> combo -> objective. Never throws, never corrupts state.
+     */
+    fun placePiece(trayIndex: Int, x: Int, y: Int): PlaceEvent? {
+        if (status != Status.PLAYING) return null
+        if (trayIndex !in tray.indices) return null
+        val piece = tray[trayIndex]
+        if (!board.canPut(piece, x, y)) return null
+
+        // -- place
+        val placedCells = mutableListOf<Pair<Int, Int>>()
+        if (!piece.isSpecial) {
+            for (i in 0 until piece.cellRows)
+                for (j in 0 until piece.cellCols)
+                    if (piece.filled(i, j)) placedCells.add(x + j to y + i)
+        }
+        require(board.putPiece(piece, x, y))
+        tray.removeAt(trayIndex)
+        refillTray()
+        movesUsed++
+
+        var points = piece.area()
+        var powerUpKind = 0
+        val powerUpCells = mutableListOf<Pair<Int, Int>>()
+
+        // -- power-up effect on the TRUE landing cell
+        val tx = board.lastPutX
+        val ty = board.lastPutY
+        if (piece.isSpecial && tx >= 0 && ty >= 0) {
+            when (piece.colorIndex) {
+                Piece.SPECIAL_STAR -> {
+                    board.setCell(tx, ty, rng.nextInt(8))
+                    points += 150
+                    powerUpKind = Piece.SPECIAL_STAR
+                    powerUpCells.add(tx to ty)
+                }
+                Piece.SPECIAL_BOMB -> {
+                    powerUpCells.addAll(board.clearArea(tx, ty, 1))
+                    points += powerUpCells.size * 2
+                    powerUpKind = Piece.SPECIAL_BOMB
+                }
+                Piece.SPECIAL_LIGHTNING -> {
+                    powerUpCells.addAll(board.clearCross(tx, ty))
+                    points += powerUpCells.size * 2
+                    powerUpKind = Piece.SPECIAL_LIGHTNING
+                }
+            }
+        }
+
+        // -- line clear
+        val clear = board.clearComplete()
+        val lines = clear.lines
+        linesCleared += lines
+        points += lines * 10
+
+        // -- combo (consecutive pieces that cleared lines)
+        if (lines > 0) {
+            combo++
+            if (combo > maxCombo) maxCombo = combo
+            if (combo >= 2) points += (combo - 1) * 10
+        } else {
+            combo = 0
+        }
+
+        score += points
+
+        // -- objective / failure
+        val objectiveDone = level != null && objectiveComplete()
+        val allowanceUsed = level != null &&
+                ((level.maxMoves > 0 && movesUsed >= level.maxMoves) || level.timeLimit > 0 && timeLeft <= 0f)
+        val blocked = !board.anyPieceFits(tray)
+
+        when {
+            objectiveDone -> status = Status.WON
+            level == null -> { /* endless: blocked = game over, reported via event */ }
+            allowanceUsed -> status = Status.LOST
+            blocked -> status = Status.LOST
+        }
+
+        return PlaceEvent(
+            placedCells, clear.cells, powerUpCells, powerUpKind,
+            combo, points, lines, blocked
+        )
+    }
+
+    companion object {
+        const val TRAY_SIZE = 3
+    }
+}
