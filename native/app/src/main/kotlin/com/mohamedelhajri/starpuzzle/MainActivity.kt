@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             runCatching {
                 java.io.File(filesDir, "crash.log").writeText(
-                    "version=2.4.0\n" + android.util.Log.getStackTraceString(throwable)
+                    "version=2.4.1\n" + android.util.Log.getStackTraceString(throwable)
                 )
             }
             previous?.uncaughtException(thread, throwable)

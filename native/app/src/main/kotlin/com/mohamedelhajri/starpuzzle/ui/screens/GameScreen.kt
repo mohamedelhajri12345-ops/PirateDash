@@ -122,17 +122,18 @@ fun GameScreen(
     var dragTargetX by remember { mutableStateOf(-1) }
     var dragTargetY by remember { mutableStateOf(-1) }
 
-    // clear animation
-    var clearAnimCells by remember { mutableStateOf(listOf<Pair<Int, Int>>()) }
-    val clearProgress = remember { Animatable(1f) }
+    // clear animation — keyed by levelId: transient state must NEVER
+    // leak from one level into the next (the v2.4.0 dialog bug)
+    var clearAnimCells by remember(levelId) { mutableStateOf(listOf<Pair<Int, Int>>()) }
+    val clearProgress = remember(levelId) { Animatable(1f) }
 
     // combo popup
-    var comboPopup by remember { mutableStateOf(0) }
-    val comboPopupAlpha = remember { Animatable(0f) }
+    var comboPopup by remember(levelId) { mutableStateOf(0) }
+    val comboPopupAlpha = remember(levelId) { Animatable(0f) }
 
-    var resultShown by remember { mutableStateOf(false) }
-    var earnedStars by remember { mutableStateOf(0) }
-    var earnedCoins by remember { mutableStateOf(0) }
+    var resultShown by remember(levelId) { mutableStateOf(false) }
+    var earnedStars by remember(levelId) { mutableStateOf(0) }
+    var earnedCoins by remember(levelId) { mutableStateOf(0) }
 
     BackHandler { onExit() }
 
@@ -147,7 +148,10 @@ fun GameScreen(
             // Redraw per tick only when a tick-driven visual exists (timed
             // levels' progress bar). Placements bump `frame` themselves,
             // so other levels no longer recompose 60-120x per second.
-            if (level.timeLimit > 0) frame++
+            if (level.timeLimit > 0) {
+                frame++
+                if (liveSession.status != GameSession.Status.PLAYING) showResult()
+            }
         }
     }
 
@@ -206,30 +210,35 @@ fun GameScreen(
                 sound.play(SoundManager.Sfx.COMBO)
             }
         }
+        // a placement may have just finished the level (or lost it)
+        if (liveSession.status != GameSession.Status.PLAYING) showResult()
         dragIndex = -1
     }
 
-    LaunchedEffect(liveSession.status) {
-        if (liveSession.status != GameSession.Status.PLAYING && !resultShown) {
-            resultShown = true
-            if (liveSession.status == GameSession.Status.WON) {
-                // SURVIVE has no leftover allowance by design — its stars
-                // reward combo skill during the run instead
-                val stars = level.starsFor(
-                    if (level.objectiveType == LevelDefinition.TYPE_SURVIVE)
-                        (liveSession.maxCombo / 3f).coerceAtMost(1f)
-                    else liveSession.allowanceLeftFraction()
-                )
-                earnedStars = stars
-                val recorded = progress.recordLevelResult(level.id, stars, level.rewardCoins)
-                earnedCoins = if (recorded) level.rewardCoins else 0
-                if (daily) progress.markDailyDone(LevelCatalog.dailyKey())
-                // "complete N levels" mission: this win counts as one
-                progress.trackDailyMission(lines = 0, score = 0, levelDone = true)
-                sound.play(SoundManager.Sfx.COIN)
-            } else {
-                sound.play(SoundManager.Sfx.GAME_OVER)
-            }
+    // The result path: called directly from placePiece/tick contexts.
+    // (v2.4.0 bug: a LaunchedEffect keyed on the plain status field never
+    // re-ran, so the win dialog never appeared — the player had to exit
+    // the level manually. Direct calls can never miss.)
+    fun showResult() {
+        if (resultShown || liveSession.status == GameSession.Status.PLAYING) return
+        resultShown = true
+        if (liveSession.status == GameSession.Status.WON) {
+            // SURVIVE has no leftover allowance by design — its stars
+            // reward combo skill during the run instead
+            val stars = level.starsFor(
+                if (level.objectiveType == LevelDefinition.TYPE_SURVIVE)
+                    (liveSession.maxCombo / 3f).coerceAtMost(1f)
+                else liveSession.allowanceLeftFraction()
+            )
+            earnedStars = stars
+            val recorded = progress.recordLevelResult(level.id, stars, level.rewardCoins)
+            earnedCoins = if (recorded) level.rewardCoins else 0
+            if (daily) progress.markDailyDone(LevelCatalog.dailyKey())
+            // "complete N levels" mission: this win counts as one
+            progress.trackDailyMission(lines = 0, score = 0, levelDone = true)
+            sound.play(SoundManager.Sfx.COIN)
+        } else {
+            sound.play(SoundManager.Sfx.GAME_OVER)
         }
     }
 
