@@ -219,6 +219,34 @@ class GameSession(
     }
 
     /**
+     * Board-targeted store booster (bomb / lightning / star). Returns the
+     * affected cells. Removals can never complete a line, so no clear
+     * pass is needed. Never throws.
+     */
+    fun applyBooster(kind: GameProgress.BoosterKind, x: Int, y: Int): List<Pair<Int, Int>> {
+        if (status != Status.PLAYING) return emptyList()
+        if (x !in 0 until board.size || y !in 0 until board.size) return emptyList()
+        return when (kind) {
+            GameProgress.BoosterKind.BOMB -> {
+                val cells = board.clearArea(x, y, 1)
+                score += cells.size * 2
+                cells
+            }
+            GameProgress.BoosterKind.LIGHTNING -> {
+                val cells = board.clearCross(x, y)
+                score += cells.size * 2
+                cells
+            }
+            GameProgress.BoosterKind.STAR -> {
+                board.setCell(x, y, rng.nextInt(8))
+                score += 50
+                listOf(x to y)
+            }
+            GameProgress.BoosterKind.MOVE -> emptyList() // handled by takeBackLast
+        }
+    }
+
+    /**
      * MOVE booster: is the last placed piece still liftable intact?
      * Every one of its cells must still hold its exact color — if a line
      * clear or power-up touched them, it can never be lifted (no guessing).

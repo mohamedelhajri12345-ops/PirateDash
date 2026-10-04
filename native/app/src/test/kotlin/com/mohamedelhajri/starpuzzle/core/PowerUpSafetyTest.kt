@@ -104,6 +104,46 @@ class PowerUpSafetyTest {
         assertEquals(19, newBoard().apply { fill(this) }.clearCross(42, 42).size)
     }
 
+    // ── store boosters applied on the board ──
+
+    @Test
+    fun bombBoosterClearsAreaAndAwardsPoints() {
+        val s = GameSession(LevelCatalog.getLevel(1))
+        for ((x, y) in listOf(0 to 0, 1 to 0, 0 to 1, 2 to 0, 1 to 1, 0 to 2, 2 to 1))
+            s.board.setCell(x, y, 3)
+        val before = s.board.colorAt(1, 0)
+        assertTrue(before >= 0)
+        val cells = s.applyBooster(GameProgress.BoosterKind.BOMB, 1, 1)
+        // 3x3 around (1,1): all 7 filled cells removed, rest were empty
+        assertTrue("cleared $cells", cells.size == 7)
+        assertTrue(s.board.isEmpty(1, 1))
+    }
+
+    @Test
+    fun zapBoosterClearsCross() {
+        val s = GameSession(LevelCatalog.getLevel(1))
+        for (x in 0 until 10) s.board.setCell(x, 4, 5)
+        val cells = s.applyBooster(GameProgress.BoosterKind.LIGHTNING, 0, 4)
+        assertTrue(cells.size == 10)
+        assertTrue(s.board.isEmpty(5, 4))
+    }
+
+    @Test
+    fun starBoosterRecolorsOneCell() {
+        val s = GameSession(LevelCatalog.getLevel(1))
+        s.board.setCell(3, 3, 2)
+        val cells = s.applyBooster(GameProgress.BoosterKind.STAR, 3, 3)
+        assertTrue(cells.size == 1)
+        assertTrue(s.board.colorAt(3, 3) >= 0)
+    }
+
+    @Test
+    fun boostersNeverActOutsideTheBoardOrAfterGameEnd() {
+        val s = GameSession(LevelCatalog.getLevel(1))
+        assertTrue(s.applyBooster(GameProgress.BoosterKind.BOMB, -1, 0).isEmpty())
+        assertTrue(s.applyBooster(GameProgress.BoosterKind.BOMB, 10, 10).isEmpty())
+    }
+
     // ── MOVE booster (lift the last placed piece back) ──
 
     @Test

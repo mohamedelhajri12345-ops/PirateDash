@@ -54,6 +54,18 @@ class PrefsSaveStore(context: Context) : SaveStore {
     override fun loadHaptics() = safeBool(KEY_HAPTICS, true)
     override fun saveHaptics(enabled: Boolean) = prefs.edit().putBoolean(KEY_HAPTICS, enabled).apply()
 
+    override fun loadOwnedSkins(): String = safeString(KEY_OWNED_SKINS, "")
+    override fun saveOwnedSkins(csv: String) =
+        prefs.edit().putString(KEY_OWNED_SKINS, csv).apply()
+
+    override fun loadBoosters(): String = safeString(KEY_BOOSTERS, "")
+    override fun saveBoosters(csv: String) =
+        prefs.edit().putString(KEY_BOOSTERS, csv).apply()
+
+    override fun loadMusic() = safeBool(KEY_MUSIC, true)
+    override fun saveMusic(enabled: Boolean) =
+        prefs.edit().putBoolean(KEY_MUSIC, enabled).apply()
+
     // A value stored as a different type by an older install must never
     // crash the app at startup — fall back to the default and clear it.
     private fun safeInt(key: String, def: Int): Int = try {
@@ -84,5 +96,8 @@ class PrefsSaveStore(context: Context) : SaveStore {
         private const val KEY_MISSIONS = "missions"
         private const val KEY_SOUND = "sound"
         private const val KEY_HAPTICS = "haptics"
+        private const val KEY_OWNED_SKINS = "owned_skins"
+        private const val KEY_BOOSTERS = "boosters"
+        private const val KEY_MUSIC = "music"
     }
 }

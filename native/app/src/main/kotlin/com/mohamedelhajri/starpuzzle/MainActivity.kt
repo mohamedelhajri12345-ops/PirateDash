@@ -19,6 +19,7 @@ import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
 import com.mohamedelhajri.starpuzzle.ui.screens.GameScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.MainMenuScreen
+import com.mohamedelhajri.starpuzzle.ui.screens.StoreScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.WorldMapScreen
 import com.mohamedelhajri.starpuzzle.ui.theme.PieceSkins
 import com.mohamedelhajri.starpuzzle.ui.theme.SkinState
@@ -27,6 +28,7 @@ import com.mohamedelhajri.starpuzzle.ui.theme.StarPuzzleTheme
 sealed class Screen {
     data object Menu : Screen()
     data object WorldMap : Screen()
+    data object Store : Screen()
     data class Game(val levelId: Int, val daily: Boolean) : Screen()
 }
 
@@ -52,7 +54,7 @@ class MainActivity : ComponentActivity() {
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             runCatching {
                 java.io.File(filesDir, "crash.log").writeText(
-                    "version=2.4.1\n" + android.util.Log.getStackTraceString(throwable)
+                    "version=3.0.0\n" + android.util.Log.getStackTraceString(throwable)
                 )
             }
             previous?.uncaughtException(thread, throwable)
@@ -71,9 +73,11 @@ fun StarPuzzleApp() {
 
     var screen by remember { mutableStateOf<Screen>(Screen.Menu) }
     var soundOn by remember { mutableStateOf(store.loadSound()) }
+    var musicOn by remember { mutableStateOf(store.loadMusic()) }
     var hapticsOn by remember { mutableStateOf(store.loadHaptics()) }
 
     sound.enabled = soundOn
+    sound.setMusicEnabled(musicOn)
 
     // Release the native SoundPool when the UI finally leaves
     DisposableEffect(sound) {
@@ -90,12 +94,20 @@ fun StarPuzzleApp() {
                 progress = progress,
                 sound = sound,
                 soundOn = soundOn,
+                musicOn = musicOn,
                 hapticsOn = hapticsOn,
                 onToggleSound = { soundOn = it; store.saveSound(it) },
+                onToggleMusic = { musicOn = it; store.saveMusic(it); sound.setMusicEnabled(it) },
                 onToggleHaptics = { hapticsOn = it; store.saveHaptics(it) },
                 onPlay = { screen = Screen.Game(progress.firstUnfinished(), false) },
                 onWorldMap = { screen = Screen.WorldMap },
-                onDaily = { screen = Screen.Game(LevelCatalog.dailyLevelId(), true) }
+                onDaily = { screen = Screen.Game(LevelCatalog.dailyLevelId(), true) },
+                onOpenStore = { screen = Screen.Store }
+            )
+            is Screen.Store -> StoreScreen(
+                progress = progress,
+                sound = sound,
+                onBack = { screen = Screen.Menu }
             )
             is Screen.WorldMap -> WorldMapScreen(
                 progress = progress,

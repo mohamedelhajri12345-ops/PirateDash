@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -66,6 +67,9 @@ import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.GameSession
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
+import com.mohamedelhajri.starpuzzle.ui.components.BoosterChip
+import com.mohamedelhajri.starpuzzle.ui.components.ConfettiBurst
+import com.mohamedelhajri.starpuzzle.ui.components.StarMilestoneStrip
 import com.mohamedelhajri.starpuzzle.core.LevelDefinition
 import com.mohamedelhajri.starpuzzle.core.Piece
 import com.mohamedelhajri.starpuzzle.ui.theme.pieceColor
@@ -78,9 +82,6 @@ import com.mohamedelhajri.starpuzzle.ui.theme.SpecialStarColor
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.min
-
-/** Coin cost of the MOVE booster (lift the last placed piece back). */
-private const val MOVE_COST = 15
 
 /**
  * The gameplay screen. The board is the hero: centered, clean, with live
@@ -132,6 +133,8 @@ fun GameScreen(
     val comboPopupAlpha = remember(levelId) { Animatable(0f) }
 
     var resultShown by remember(levelId) { mutableStateOf(false) }
+    // store-booster targeting mode (tap a cell to apply)
+    var boostTarget: GameProgress.BoosterKind? by remember(levelId) { mutableStateOf<GameProgress.BoosterKind?>(null) }
     var earnedStars by remember(levelId) { mutableStateOf(0) }
     var earnedCoins by remember(levelId) { mutableStateOf(0) }
 
@@ -247,6 +250,39 @@ fun GameScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .pointerInput(liveSession, boostTarget) {
+                detectTapGestures { pos ->
+                    val kind = boostTarget ?: return@detectTapGestures
+                    if (liveSession.status != GameSession.Status.PLAYING) {
+                        boostTarget = null; return@detectTapGestures
+                    }
+                    val gx = ((pos.x - boardOrigin.x) / boardPx).toInt()
+                    val gy = ((pos.y - boardOrigin.y) / boardPx).toInt()
+                    if (gx !in 0..9 || gy !in 0..9) return@detectTapGestures
+                    if (progress.spendBooster(kind)) {
+                        val cells = liveSession.applyBooster(kind, gx, gy)
+                        if (cells.isNotEmpty()) {
+                            if (cells.size > 1 || kind == GameProgress.BoosterKind.BOMB) {
+                                clearAnimCells = cells
+                                scope.launch {
+                                    clearProgress.snapTo(0f)
+                                    clearProgress.animateTo(1f, tween(320))
+                                }
+                            }
+                            sound.play(
+                                when (kind) {
+                                    GameProgress.BoosterKind.BOMB -> SoundManager.Sfx.BOMB
+                                    GameProgress.BoosterKind.LIGHTNING -> SoundManager.Sfx.COMBO
+                                    else -> SoundManager.Sfx.STAR
+                                }
+                            )
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            frame++
+                        }
+                    }
+                    boostTarget = null
+                }
+            }
             .pointerInput(liveSession) {
                 detectDragGestures(
                     onDragStart = { pos ->
@@ -357,20 +393,13 @@ fun GameScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(10.dp))
                 val objProgress = min(
                     1f,
                     liveSession.objectiveProgress().toFloat() / level.target().coerceAtLeast(1)
                 )
-                LinearProgressIndicator(
-                    progress = { objProgress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+                // approved design: glowing star gems replace the old bar
+                StarMilestoneStrip(objProgress, Modifier.fillMaxWidth())
             }
 
             Spacer(Modifier.weight(1f))
@@ -397,32 +426,41 @@ fun GameScreen(
                 )
             }
 
-            // ── MOVE booster: lift the last placed piece back ──
+            // ── Booster bar (store inventory — the approved store items) ──
+            val inv = progress.boosters()
+            val playing = liveSession.status == GameSession.Status.PLAYING
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
             ) {
-                OutlinedButton(
-                    onClick = {
-                        if (liveSession.takeBackLast() != null) {
-                            progress.spendCoins(MOVE_COST)
-                            sound.play(SoundManager.Sfx.COIN)
-                            frame++
-                        }
-                    },
-                    enabled = liveSession.status == GameSession.Status.PLAYING &&
-                            liveSession.canTakeBack() &&
-                            progress.coins >= MOVE_COST,
-                    border = BorderStroke(
-                        1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp)
-                ) {
-                    Text("MOVE LAST · $MOVE_COST", style = MaterialTheme.typography.labelMedium)
-                }
+                BoosterChip("BOMB", inv.bomb, boostTarget == GameProgress.BoosterKind.BOMB, {
+                    boostTarget = if (boostTarget == GameProgress.BoosterKind.BOMB) null
+                    else GameProgress.BoosterKind.BOMB
+                }, enabled = playing && inv.bomb > 0, sound)
+                BoosterChip("ZAP", inv.lightning, boostTarget == GameProgress.BoosterKind.LIGHTNING, {
+                    boostTarget = if (boostTarget == GameProgress.BoosterKind.LIGHTNING) null
+                    else GameProgress.BoosterKind.LIGHTNING
+                }, enabled = playing && inv.lightning > 0, sound)
+                BoosterChip("STAR", inv.star, boostTarget == GameProgress.BoosterKind.STAR, {
+                    boostTarget = if (boostTarget == GameProgress.BoosterKind.STAR) null
+                    else GameProgress.BoosterKind.STAR
+                }, enabled = playing && inv.star > 0, sound)
+                BoosterChip("MOVE", inv.move, false, {
+                    if (playing && liveSession.canTakeBack() &&
+                        progress.spendBooster(GameProgress.BoosterKind.MOVE)) {
+                        liveSession.takeBackLast()
+                        sound.play(SoundManager.Sfx.PLACE)
+                        frame++
+                    } else sound.play(SoundManager.Sfx.INVALID)
+                }, enabled = playing && inv.move > 0, sound)
+            }
+            if (boostTarget != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "TAP A CELL ON THE BOARD",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
 
             Spacer(Modifier.height(8.dp))
@@ -522,6 +560,7 @@ fun GameScreen(
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.6f))
             ) {
+                if (liveSession.status == GameSession.Status.WON) ConfettiBurst()
                 Surface(
                     shape = RoundedCornerShape(28.dp),
                     color = MaterialTheme.colorScheme.surface,

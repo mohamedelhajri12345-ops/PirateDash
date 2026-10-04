@@ -21,6 +21,12 @@ interface SaveStore {
     fun saveSkin(id: Int)
     fun loadMissions(): String
     fun saveMissions(state: String)
+    fun loadOwnedSkins(): String          // csv of owned skin ids, "" = first run
+    fun saveOwnedSkins(csv: String)
+    fun loadBoosters(): String            // "bomb|lightning|star|move" counts
+    fun saveBoosters(csv: String)
+    fun loadMusic(): Boolean
+    fun saveMusic(enabled: Boolean)
 }
 
 /** Progress helper over a SaveStore. */
@@ -126,4 +132,84 @@ class GameProgress(private val store: SaveStore) {
 
     fun isDailyDone(key: String): Boolean = store.loadDailyDone(key)
     fun markDailyDone(key: String) = store.saveDailyDone(key)
+
+    // ── Store: boosters + skins, in-game currency ONLY (no real money,
+    // no stars — approved spec) ─────────────────────────────────────
+
+    enum class BoosterKind { BOMB, LIGHTNING, STAR, MOVE }
+
+    data class BoosterCounts(val bomb: Int, val lightning: Int, val star: Int, val move: Int)
+
+    /** Prices in coins — one source of truth for the store screen. */
+    fun boosterPrice(kind: BoosterKind): Int = when (kind) {
+        BoosterKind.BOMB -> 150
+        BoosterKind.LIGHTNING -> 150
+        BoosterKind.STAR -> 200
+        BoosterKind.MOVE -> 100
+    }
+
+    fun skinPrice(skinId: Int): Int = if (skinId <= 0) 0 else (200 + skinId * 10)
+
+    fun boosters(): BoosterCounts {
+        ensureStarterKit()
+        val raw = store.loadBoosters()
+        val parts = raw.split('|')
+        fun at(i: Int) = parts.getOrNull(i)?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        return BoosterCounts(at(0), at(1), at(2), at(3))
+    }
+
+    private fun saveBoosters(c: BoosterCounts) =
+        store.saveBoosters("${c.bomb}|${c.lightning}|${c.star}|${c.move}")
+
+    fun buyBooster(kind: BoosterKind): Boolean {
+        if (!spendCoins(boosterPrice(kind))) return false
+        val c = boosters()
+        saveBoosters(
+            when (kind) {
+                BoosterKind.BOMB -> c.copy(bomb = c.bomb + 1)
+                BoosterKind.LIGHTNING -> c.copy(lightning = c.lightning + 1)
+                BoosterKind.STAR -> c.copy(star = c.star + 1)
+                BoosterKind.MOVE -> c.copy(move = c.move + 1)
+            }
+        )
+        return true
+    }
+
+    /** Atomic consume for in-game use: false when none left. */
+    fun spendBooster(kind: BoosterKind): Boolean {
+        val c = boosters()
+        val next = when (kind) {
+            BoosterKind.BOMB -> if (c.bomb <= 0) null else c.copy(bomb = c.bomb - 1)
+            BoosterKind.LIGHTNING -> if (c.lightning <= 0) null else c.copy(lightning = c.lightning - 1)
+            BoosterKind.STAR -> if (c.star <= 0) null else c.copy(star = c.star - 1)
+            BoosterKind.MOVE -> if (c.move <= 0) null else c.copy(move = c.move - 1)
+        } ?: return false
+        saveBoosters(next)
+        return true
+    }
+
+    fun ownedSkins(): Set<Int> {
+        ensureStarterKit()
+        return store.loadOwnedSkins().split(',').mapNotNull { it.toIntOrNull() }.toSet()
+    }
+
+    fun skinOwned(skinId: Int): Boolean = skinId in ownedSkins()
+
+    /** Buy + equip in one tap, exactly as the approved store shows. */
+    fun buySkin(skinId: Int): Boolean {
+        if (skinOwned(skinId)) return true
+        if (!spendCoins(skinPrice(skinId))) return false
+        store.saveOwnedSkins(store.loadOwnedSkins().let {
+            if (it.isBlank()) "$skinId" else "$it,$skinId"
+        })
+        return true
+    }
+
+    /** First run: default skin owned + a small starter booster kit. */
+    private fun ensureStarterKit() {
+        val raw = store.loadOwnedSkins()
+        if (raw.isNotBlank()) return
+        store.saveOwnedSkins("0")
+        saveBoosters(BoosterCounts(bomb = 1, lightning = 1, star = 1, move = 3))
+    }
 }

@@ -2,13 +2,44 @@ package com.mohamedelhajri.starpuzzle.audio
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.media.SoundPool
 import com.mohamedelhajri.starpuzzle.R
 
 /** SoundPool wrapper: one play() per gameplay event, no spam. */
-class SoundManager(context: Context) {
+class SoundManager(private val context: Context) {
 
     @Volatile var enabled = true
+    @Volatile var musicEnabled = true
+
+    // BGM: one calm looping track, low volume, never competes with SFX
+    private var bgm: MediaPlayer? = null
+
+    /** Starts the background loop (no-op when already playing). */
+    fun startMusic() {
+        if (!musicEnabled) return
+        if (bgm?.isPlaying == true) return
+        runCatching {
+            if (bgm == null) {
+                bgm = MediaPlayer.create(context, R.raw.bgm_space)?.apply {
+                    isLooping = true
+                    setVolume(0.35f, 0.35f)
+                }
+            }
+            bgm?.start()
+        }
+    }
+
+    fun stopMusic() {
+        runCatching {
+            bgm?.let { if (it.isPlaying) it.pause() }
+        }
+    }
+
+    fun setMusicEnabled(on: Boolean) {
+        musicEnabled = on
+        if (on) startMusic() else stopMusic()
+    }
 
     private val pool: SoundPool = SoundPool.Builder()
         .setMaxStreams(4)
@@ -48,5 +79,9 @@ class SoundManager(context: Context) {
         if (id in loaded) pool.play(id, volume, volume, 1, 0, 1f)
     }
 
-    fun release() = pool.release()
+    fun release() {
+        pool.release()
+        runCatching { bgm?.release() }
+        bgm = null
+    }
 }

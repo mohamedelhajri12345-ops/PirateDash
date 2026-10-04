@@ -256,6 +256,52 @@ class LevelCatalogTest {
         assertEquals(1, progress.dailyMissionState().levels)
     }
 
+    // ── store: boosters + skins (in-game coins only) ──
+
+    @Test
+    fun starterKitIsGrantedOnce() {
+        val f = FakeStore()
+        val progress = GameProgress(f)
+        val owned = progress.ownedSkins()
+        assertTrue(owned.contains(0))
+        val inv = progress.boosters()
+        assertTrue(inv.bomb == 1 && inv.lightning == 1 && inv.star == 1 && inv.move == 3)
+        // second call must NOT re-grant
+        progress.ownedSkins()
+        assertTrue(progress.boosters().move == 3)
+    }
+
+    @Test
+    fun buyAndSpendBoostersAtomically() {
+        val f = FakeStore()
+        val progress = GameProgress(f)
+        progress.ownedSkins() // trigger starter kit
+        f.saveCoins(400)
+        assertTrue(progress.buyBooster(GameProgress.BoosterKind.BOMB))
+        assertTrue(progress.boosters().bomb == 2) // starter 1 + bought 1
+        assertTrue(progress.coins == 250) // 400 - 150
+        // spending drains to zero and then refuses
+        assertTrue(progress.spendBooster(GameProgress.BoosterKind.BOMB))
+        assertTrue(progress.spendBooster(GameProgress.BoosterKind.BOMB))
+        assertFalse(progress.spendBooster(GameProgress.BoosterKind.BOMB))
+    }
+
+    @Test
+    fun skinPurchaseRequiresCoinsAndRecordsOwnership() {
+        val f = FakeStore()
+        val progress = GameProgress(f)
+        progress.ownedSkins()
+        assertTrue(progress.skinOwned(0))
+        assertFalse(progress.skinOwned(5))
+        f.saveCoins(250)
+        assertTrue(progress.buySkin(5))
+        assertTrue(progress.skinOwned(5))
+        assertTrue(progress.coins == 250 - (200 + 5 * 10))
+        // buying again is a no-op true (already owned, no charge)
+        assertTrue(progress.buySkin(5))
+        assertTrue(progress.coins == 250 - 250)
+    }
+
     @Test
     fun spendCoinsIsAtomicAndSafe() {
         val store = FakeStore()
@@ -268,6 +314,9 @@ class LevelCatalogTest {
     }
 
     class FakeStore : SaveStore {
+        var ownedSkins = ""
+        var boosters = ""
+        var music = true
         val savedStars = mutableMapOf<Int, Int>()
         var coins = 0
         override fun loadStars(): MutableMap<Int, Int> = savedStars.toMutableMap()
