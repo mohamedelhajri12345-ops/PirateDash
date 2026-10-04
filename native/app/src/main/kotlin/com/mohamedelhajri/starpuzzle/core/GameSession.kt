@@ -230,11 +230,14 @@ class GameSession(
             GameProgress.BoosterKind.BOMB -> {
                 val cells = board.clearArea(x, y, 1)
                 score += cells.size * 2
+                // CLEANUP: booster removals consume dirt too
+                if (dirtRemaining.isNotEmpty()) dirtRemaining.removeAll(cells)
                 cells
             }
             GameProgress.BoosterKind.LIGHTNING -> {
                 val cells = board.clearCross(x, y)
                 score += cells.size * 2
+                if (dirtRemaining.isNotEmpty()) dirtRemaining.removeAll(cells)
                 cells
             }
             GameProgress.BoosterKind.STAR -> {

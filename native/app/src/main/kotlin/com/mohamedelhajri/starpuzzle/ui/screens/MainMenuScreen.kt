@@ -240,7 +240,7 @@ fun MainMenuScreen(
                 MenuChip("DAILY") { onDaily() }
                 MenuChip("SHOP") { onOpenStore() }
                 Text(
-                    "v3.0.0",
+                    "v3.0.1",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFFF5F7FF).copy(alpha = 0.35f),
                     modifier = Modifier.padding(top = 20.dp)
@@ -322,10 +322,12 @@ fun MainMenuScreen(
     }
 
     if (showSettings) {
-        SettingsDialog(
-            soundOn, musicOn, hapticsOn,
-            onToggleSound, onToggleMusic, onToggleHaptics
-        ) { showSettings = false }
+        androidx.compose.ui.window.Dialog(onDismissRequest = { showSettings = false }) {
+            SettingsDialog(
+                soundOn, musicOn, hapticsOn,
+                onToggleSound, onToggleMusic, onToggleHaptics
+            ) { showSettings = false }
+        }
     }
 }
 
@@ -355,8 +357,7 @@ private fun SettingsDialog(
 ) {
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF16204A),
-        modifier = Modifier.padding(8.dp)
+        color = Color(0xFF16204A)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text("SETTINGS", style = MaterialTheme.typography.titleLarge,

@@ -138,6 +138,44 @@ class PowerUpSafetyTest {
     }
 
     @Test
+    fun storeBoostersCreditCleanupDirt() {
+        // find a real CLEANUP level (world 2, every 5th)
+        val id = generateSequence(11) { it + 1 }
+            .first { LevelCatalog.getLevel(it).objectiveType == LevelDefinition.TYPE_CLEANUP }
+        val s = GameSession(LevelCatalog.getLevel(id))
+        assertTrue("cleanup level must open with dirt", s.dirtCleared == 0)
+        // find a dirt cell and bomb it off the board
+        var tx = -1; var ty = -1
+        outer@ for (y in 0 until 10) for (x in 0 until 10)
+            if (s.board.colorAt(x, y) >= 0) { tx = x; ty = y; break@outer }
+        assertTrue("board must have dirt", tx >= 0)
+        val before = s.dirtCleared
+        s.applyBooster(GameProgress.BoosterKind.BOMB, tx, ty)
+        // the dirt set must shrink when the booster removed dirt cells
+        assertTrue("dirt credited", s.dirtCleared > before)
+        assertEquals("bomb must empty the center cell", -1, s.board.colorAt(tx, ty))
+    }
+
+    @Test
+    fun cleanupObjectiveAdvancesViaBoosterAlone() {
+        val id = generateSequence(11) { it + 1 }
+            .first { LevelCatalog.getLevel(it).objectiveType == LevelDefinition.TYPE_CLEANUP }
+        val s = GameSession(LevelCatalog.getLevel(id))
+        val target = LevelCatalog.getLevel(id).targetCount
+        var cleared = 0
+        var guard = 0
+        while (s.dirtCleared < target && guard++ < 200) {
+            outer@ for (y in 0 until 10) for (x in 0 until 10)
+                if (s.board.colorAt(x, y) >= 0) {
+                    s.applyBooster(GameProgress.BoosterKind.BOMB, x, y)
+                    break@outer
+                }
+        }
+        assertTrue("boosters alone must finish the cleanup objective, " +
+                "cleared=${s.dirtCleared}/$target", s.dirtCleared >= target)
+    }
+
+    @Test
     fun boostersNeverActOutsideTheBoardOrAfterGameEnd() {
         val s = GameSession(LevelCatalog.getLevel(1))
         assertTrue(s.applyBooster(GameProgress.BoosterKind.BOMB, -1, 0).isEmpty())

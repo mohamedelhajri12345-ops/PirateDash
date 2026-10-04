@@ -2,6 +2,8 @@ package com.mohamedelhajri.starpuzzle.audio
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.SoundPool
 import com.mohamedelhajri.starpuzzle.R
@@ -14,11 +16,42 @@ class SoundManager(private val context: Context) {
 
     // BGM: one calm looping track, low volume, never competes with SFX
     private var bgm: MediaPlayer? = null
+    private val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    private var focusRequest: AudioFocusRequest? = null
+    private var focusHeld = false
+
+    /**
+     * Audio focus: the OS tells us when a call or another app needs the
+     * speakers (transient loss = pause our loop; permanent = stop it).
+     * Without this the BGM would talk over a phone call.
+     */
+    private fun requestFocus() {
+        if (focusHeld) return
+        val req = focusRequest ?: AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+            .setOnAudioFocusChangeListener { change ->
+                when (change) {
+                    AudioManager.AUDIOFOCUS_LOSS -> { stopMusic(); focusHeld = false }
+                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
+                    AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> stopMusic()
+                }
+            }
+            .build()
+            .also { focusRequest = it }
+        focusHeld = audio.requestAudioFocus(req) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+    }
+
+    private fun abandonFocus() {
+        if (!focusHeld) return
+        focusRequest?.let { audio.abandonAudioFocusRequest(it) }
+        focusHeld = false
+    }
 
     /** Starts the background loop (no-op when already playing). */
     fun startMusic() {
         if (!musicEnabled) return
         if (bgm?.isPlaying == true) return
+        requestFocus()
+        if (!focusHeld) return
         runCatching {
             if (bgm == null) {
                 bgm = MediaPlayer.create(context, R.raw.bgm_space)?.apply {
@@ -34,6 +67,19 @@ class SoundManager(private val context: Context) {
         runCatching {
             bgm?.let { if (it.isPlaying) it.pause() }
         }
+        // only surrender focus on a deliberate user stop; a transient
+        // loss (call) keeps our request so we can resume when it ends
+    }
+
+    /** Full silence + focus release: app going to the background. */
+    fun pauseAll() {
+        stopMusic()
+        abandonFocus()
+    }
+
+    /** App back to the foreground. */
+    fun resumeMusic() {
+        if (musicEnabled) startMusic()
     }
 
     fun music(on: Boolean) {

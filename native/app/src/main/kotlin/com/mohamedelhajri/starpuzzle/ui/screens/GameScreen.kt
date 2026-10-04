@@ -31,7 +31,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -259,6 +258,14 @@ fun GameScreen(
                     val gx = ((pos.x - boardOrigin.x) / boardPx).toInt()
                     val gy = ((pos.y - boardOrigin.y) / boardPx).toInt()
                     if (gx !in 0..9 || gy !in 0..9) return@detectTapGestures
+                    // BOMB/ZAP need a filled target cell — never burn a
+                    // booster on an empty tap. STAR may also fill an empty
+                    // cell (that is its purpose: drop a helpful block).
+                    val needsCell = kind != GameProgress.BoosterKind.STAR
+                    if (needsCell && liveSession.board.colorAt(gx, gy) < 0) {
+                        sound.play(SoundManager.Sfx.INVALID)
+                        boostTarget = null; return@detectTapGestures
+                    }
                     if (progress.spendBooster(kind)) {
                         val cells = liveSession.applyBooster(kind, gx, gy)
                         if (cells.isNotEmpty()) {

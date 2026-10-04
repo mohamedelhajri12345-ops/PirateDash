@@ -14,6 +14,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ProcessLifecycleOwner
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
@@ -54,7 +57,7 @@ class MainActivity : ComponentActivity() {
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             runCatching {
                 java.io.File(filesDir, "crash.log").writeText(
-                    "version=3.0.0\n" + android.util.Log.getStackTraceString(throwable)
+                    "version=3.0.1\n" + android.util.Log.getStackTraceString(throwable)
                 )
             }
             previous?.uncaughtException(thread, throwable)
@@ -82,6 +85,19 @@ fun StarPuzzleApp() {
     // Release the native SoundPool when the UI finally leaves
     DisposableEffect(sound) {
         onDispose { sound.release() }
+    }
+
+    // Lifecycle: silence everything in the background, resume in front
+    DisposableEffect(sound, musicOn) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> sound.pauseAll()
+                Lifecycle.Event.ON_RESUME -> sound.resumeMusic()
+                else -> {}
+            }
+        }
+        processLifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { processLifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     AnimatedContent(
