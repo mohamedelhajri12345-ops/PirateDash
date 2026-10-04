@@ -1,9 +1,9 @@
 package com.mohamedelhajri.starpuzzle.ui.screens
 
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteTransition
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -70,7 +70,13 @@ private val NavyMid = Color(0xFF1B2C5C)
 private fun CelestialSky() {
     val transition = rememberInfiniteTransition(label = "sky")
     val twinkle by transition.animateFloat(
-        0f, 1f, tween(7000, easing = LinearEasing), RepeatMode.Reverse, label = "tw"
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(7000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "tw"
     )
     Canvas(modifier = Modifier.fillMaxSize()) {
         val w = size.width

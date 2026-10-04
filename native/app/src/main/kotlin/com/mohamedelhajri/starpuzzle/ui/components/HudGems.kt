@@ -1,9 +1,9 @@
 package com.mohamedelhajri.starpuzzle.ui.components
 
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteTransition
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -73,7 +73,7 @@ private fun StarGem(lit: Float, size: Int) {
     val dpSize = size.dp
     Box(modifier = Modifier.size(dpSize), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val s = this.size.minDimension()
+            val s = this.size.minDimension
             if (lit > 0f) {
                 // soft halo behind the lit gem
                 drawCircle(
@@ -157,7 +157,7 @@ fun BoosterChip(
             contentAlignment = Alignment.Center
         ) {
             Canvas(modifier = Modifier.size(16.dp)) {
-                val s = size.minDimension()
+                val s = size.minDimension
                 when (label) {
                     "BOMB" -> {
                         drawCircle(Color(0xFF8D6E63), radius = s * 0.4f,
@@ -211,8 +211,10 @@ fun ConfettiBurst() {
     val t by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = tween(3200, easing = LinearEasing),
-        repeatMode = RepeatMode.Restart,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
         label = "confetti-t"
     )
     Canvas(modifier = Modifier.fillMaxSize()) {
