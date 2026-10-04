@@ -135,6 +135,33 @@ fun GameScreen(
     var earnedStars by remember(levelId) { mutableStateOf(0) }
     var earnedCoins by remember(levelId) { mutableStateOf(0) }
 
+    // The result path: called directly from placePiece/tick contexts.
+    // (v2.4.0 bug: a LaunchedEffect keyed on the plain status field never
+    // re-ran, so the win dialog never appeared — the player had to exit
+    // the level manually. Direct calls can never miss.)
+    fun showResult() {
+        if (resultShown || liveSession.status == GameSession.Status.PLAYING) return
+        resultShown = true
+        if (liveSession.status == GameSession.Status.WON) {
+            // SURVIVE has no leftover allowance by design — its stars
+            // reward combo skill during the run instead
+            val stars = level.starsFor(
+                if (level.objectiveType == LevelDefinition.TYPE_SURVIVE)
+                    (liveSession.maxCombo / 3f).coerceAtMost(1f)
+                else liveSession.allowanceLeftFraction()
+            )
+            earnedStars = stars
+            val recorded = progress.recordLevelResult(level.id, stars, level.rewardCoins)
+            earnedCoins = if (recorded) level.rewardCoins else 0
+            if (daily) progress.markDailyDone(LevelCatalog.dailyKey())
+            // "complete N levels" mission: this win counts as one
+            progress.trackDailyMission(lines = 0, score = 0, levelDone = true)
+            sound.play(SoundManager.Sfx.COIN)
+        } else {
+            sound.play(SoundManager.Sfx.GAME_OVER)
+        }
+    }
+
     BackHandler { onExit() }
 
     // timer + frame redraw loop
@@ -215,32 +242,6 @@ fun GameScreen(
         dragIndex = -1
     }
 
-    // The result path: called directly from placePiece/tick contexts.
-    // (v2.4.0 bug: a LaunchedEffect keyed on the plain status field never
-    // re-ran, so the win dialog never appeared — the player had to exit
-    // the level manually. Direct calls can never miss.)
-    fun showResult() {
-        if (resultShown || liveSession.status == GameSession.Status.PLAYING) return
-        resultShown = true
-        if (liveSession.status == GameSession.Status.WON) {
-            // SURVIVE has no leftover allowance by design — its stars
-            // reward combo skill during the run instead
-            val stars = level.starsFor(
-                if (level.objectiveType == LevelDefinition.TYPE_SURVIVE)
-                    (liveSession.maxCombo / 3f).coerceAtMost(1f)
-                else liveSession.allowanceLeftFraction()
-            )
-            earnedStars = stars
-            val recorded = progress.recordLevelResult(level.id, stars, level.rewardCoins)
-            earnedCoins = if (recorded) level.rewardCoins else 0
-            if (daily) progress.markDailyDone(LevelCatalog.dailyKey())
-            // "complete N levels" mission: this win counts as one
-            progress.trackDailyMission(lines = 0, score = 0, levelDone = true)
-            sound.play(SoundManager.Sfx.COIN)
-        } else {
-            sound.play(SoundManager.Sfx.GAME_OVER)
-        }
-    }
 
     BoxWithConstraints(
         modifier = Modifier
