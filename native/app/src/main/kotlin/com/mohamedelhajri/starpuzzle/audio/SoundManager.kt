@@ -36,7 +36,7 @@ class SoundManager(private val context: Context) {
         }
     }
 
-    fun setMusicEnabled(on: Boolean) {
+    fun music(on: Boolean) {
         musicEnabled = on
         if (on) startMusic() else stopMusic()
     }

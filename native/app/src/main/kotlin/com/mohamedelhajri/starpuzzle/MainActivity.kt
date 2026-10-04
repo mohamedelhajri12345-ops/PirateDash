@@ -77,7 +77,7 @@ fun StarPuzzleApp() {
     var hapticsOn by remember { mutableStateOf(store.loadHaptics()) }
 
     sound.enabled = soundOn
-    sound.setMusicEnabled(musicOn)
+    sound.music(musicOn)
 
     // Release the native SoundPool when the UI finally leaves
     DisposableEffect(sound) {
@@ -97,7 +97,7 @@ fun StarPuzzleApp() {
                 musicOn = musicOn,
                 hapticsOn = hapticsOn,
                 onToggleSound = { soundOn = it; store.saveSound(it) },
-                onToggleMusic = { musicOn = it; store.saveMusic(it); sound.setMusicEnabled(it) },
+                onToggleMusic = { musicOn = it; store.saveMusic(it); sound.music(it) },
                 onToggleHaptics = { hapticsOn = it; store.saveHaptics(it) },
                 onPlay = { screen = Screen.Game(progress.firstUnfinished(), false) },
                 onWorldMap = { screen = Screen.WorldMap },
