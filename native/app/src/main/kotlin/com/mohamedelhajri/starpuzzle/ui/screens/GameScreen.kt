@@ -224,6 +224,8 @@ fun GameScreen(
                 val recorded = progress.recordLevelResult(level.id, stars, level.rewardCoins)
                 earnedCoins = if (recorded) level.rewardCoins else 0
                 if (daily) progress.markDailyDone(LevelCatalog.dailyKey())
+                // "complete N levels" mission: this win counts as one
+                progress.trackDailyMission(lines = 0, score = 0, levelDone = true)
                 sound.play(SoundManager.Sfx.COIN)
             } else {
                 sound.play(SoundManager.Sfx.GAME_OVER)

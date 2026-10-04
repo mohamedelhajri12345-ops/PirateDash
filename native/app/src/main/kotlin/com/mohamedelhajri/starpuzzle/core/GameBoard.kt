@@ -143,19 +143,22 @@ class GameBoard(val size: Int = 10) {
             var guard = 0
             while (dirt.size < target && guard++ < 1000) {
                 val x = rng.nextInt(size); val y = rng.nextInt(size)
-                if (cells[y][x] < 0) put(x, y)
-                if (rowComplete(y) || colComplete(x)) break // never start near a full line
+                // never place the completing cell of any row or column
+                if (cells[y][x] < 0 && !wouldComplete(x, y)) put(x, y)
             }
         } else {
+            // geometric patterns: skip candidates that would complete a
+            // line (the CROSS family used to complete row m instantly and
+            // the normalization cleared all 10 of its cells away, leaving
+            // less dirt than the CLEANUP objective demands)
             for ((x, y) in candidates) {
                 if (dirt.size >= target) break
-                if (cells[y][x] < 0) put(x, y)
-                if (rowComplete(y) || colComplete(x)) break
+                if (cells[y][x] < 0 && !wouldComplete(x, y)) put(x, y)
             }
             var guard = 0 // pattern may run short — top up randomly
             while (dirt.size < target && guard++ < 1000) {
                 val x = rng.nextInt(size); val y = rng.nextInt(size)
-                if (cells[y][x] < 0) put(x, y)
+                if (cells[y][x] < 0 && !wouldComplete(x, y)) put(x, y)
             }
         }
         // Never start with an already-completed line waiting on the board
