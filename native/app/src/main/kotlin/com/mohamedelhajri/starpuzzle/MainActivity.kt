@@ -96,8 +96,8 @@ fun StarPuzzleApp() {
                 else -> {}
             }
         }
-        processLifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { processLifecycleOwner.lifecycle.removeObserver(observer) }
+        ProcessLifecycleOwner.get().lifecycle.addObserver(observer)
+        onDispose { ProcessLifecycleOwner.get().lifecycle.removeObserver(observer) }
     }
 
     AnimatedContent(
