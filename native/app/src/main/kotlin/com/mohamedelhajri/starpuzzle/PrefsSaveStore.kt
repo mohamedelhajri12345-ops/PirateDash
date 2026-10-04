@@ -66,6 +66,25 @@ class PrefsSaveStore(context: Context) : SaveStore {
     override fun saveMusic(enabled: Boolean) =
         prefs.edit().putBoolean(KEY_MUSIC, enabled).apply()
 
+    // ── v4.1: generic extension-key storage ──
+    override fun loadExtraInt(key: String, def: Int): Int = try {
+        prefs.getInt(key, def)
+    } catch (e: Exception) {
+        def
+    }
+
+    override fun saveExtraInt(key: String, value: Int) =
+        prefs.edit().putInt(key, value).apply()
+
+    override fun loadExtraBool(key: String, def: Boolean): Boolean = try {
+        prefs.getBoolean(key, def)
+    } catch (e: Exception) {
+        def
+    }
+
+    override fun saveExtraBool(key: String, value: Boolean) =
+        prefs.edit().putBoolean(key, value).apply()
+
     // A value stored as a different type by an older install must never
     // crash the app at startup — fall back to the default and clear it.
     private fun safeInt(key: String, def: Int): Int = try {

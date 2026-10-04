@@ -64,6 +64,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
+import com.mohamedelhajri.starpuzzle.core.FeelState
 import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.GameSession
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
@@ -165,6 +166,7 @@ fun GameScreen(
                 else liveSession.allowanceLeftFraction()
             )
             earnedStars = stars
+            progress.recordBestCombo(liveSession.maxCombo)
             val recorded = progress.recordLevelResult(level.id, stars, level.rewardCoins)
             earnedCoins = if (recorded) level.rewardCoins else 0
             if (daily) progress.markDailyDone(LevelCatalog.dailyKey())
@@ -253,10 +255,16 @@ fun GameScreen(
                     comboPopupAlpha.snapTo(1f)
                     comboPopupAlpha.animateTo(0f, tween(900))
                 }
-                sound.play(SoundManager.Sfx.COMBO)
+                when {
+                    event.combo >= 4 -> sound.play(SoundManager.Sfx.COMBO4)
+                    event.combo == 3 -> sound.play(SoundManager.Sfx.COMBO3)
+                    else -> sound.play(SoundManager.Sfx.COMBO2)
+                }
             }
 
             // ── v3.1 juice: particles + shake + encouragement bubble ──
+            // (honors the Reduced-motion accessibility setting)
+            if (FeelState.motionOn) {
             val lx = dragPos.x - boardOrigin.x
             val ly = dragPos.y - boardOrigin.y
             val landColor = pieceColor(piece.colorIndex)
@@ -305,6 +313,7 @@ fun GameScreen(
                     bubbleAlpha.animateTo(0f, tween(1000))
                 }
             }
+            } // FeelState gate
         }
         // a placement may have just finished the level (or lost it)
         if (liveSession.status != GameSession.Status.PLAYING) showResult()
@@ -351,6 +360,8 @@ fun GameScreen(
                                 }
                             )
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            progress.incBoostersUsed()
+                            if (FeelState.motionOn) {
                             val blx = (gx + 0.5f) * boardPx
                             val bly = (gy + 0.5f) * boardPx
                             when (kind) {
@@ -363,6 +374,7 @@ fun GameScreen(
                                     particles.triggerShake(4f)
                                 }
                                 else -> particles.spawn(ParticleEvent.STAR_SPECIAL, blx, bly, boardPx, listOf(Color(0xFFFFD54F)))
+                            }
                             }
                             frame++
                         }

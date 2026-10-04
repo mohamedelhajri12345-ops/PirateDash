@@ -19,6 +19,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.GameProgress
+import com.mohamedelhajri.starpuzzle.core.FeelState
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
 import com.mohamedelhajri.starpuzzle.ui.screens.GameScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.MainMenuScreen
@@ -58,7 +59,7 @@ class MainActivity : ComponentActivity() {
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             runCatching {
                 java.io.File(filesDir, "crash.log").writeText(
-                    "version=4.0.0\n" + android.util.Log.getStackTraceString(throwable)
+                    "version=4.1.0\n" + android.util.Log.getStackTraceString(throwable)
                 )
             }
             previous?.uncaughtException(thread, throwable)
@@ -73,12 +74,15 @@ fun StarPuzzleApp() {
     val sound = remember { SoundManager(context) }
     // restore the saved piece-color skin (coerced against catalog size)
     SkinState.active = store.loadSkin().coerceIn(0, MaterialSkinCatalog.allSkins.size - 1)
+    FeelState.motionOn = store.loadExtraBool("motion", true)
+    progress.refreshStreak()
     val progress = remember { GameProgress(store) }
 
     var screen by remember { mutableStateOf<Screen>(Screen.Menu) }
     var soundOn by remember { mutableStateOf(store.loadSound()) }
     var musicOn by remember { mutableStateOf(store.loadMusic()) }
     var hapticsOn by remember { mutableStateOf(store.loadHaptics()) }
+    var motionOn by remember { mutableStateOf(store.loadExtraBool("motion", true)) }
 
     sound.enabled = soundOn
     sound.music(musicOn)
@@ -116,6 +120,12 @@ fun StarPuzzleApp() {
                 onToggleSound = { soundOn = it; store.saveSound(it) },
                 onToggleMusic = { musicOn = it; store.saveMusic(it); sound.music(it) },
                 onToggleHaptics = { hapticsOn = it; store.saveHaptics(it) },
+                motionOn = motionOn,
+                onToggleMotion = {
+                    motionOn = it
+                    store.saveExtraBool("motion", it)
+                    FeelState.motionOn = it
+                },
                 onPlay = { screen = Screen.Game(progress.firstUnfinished(), false) },
                 onWorldMap = { screen = Screen.WorldMap },
                 onDaily = { screen = Screen.Game(LevelCatalog.dailyLevelId(), true) },

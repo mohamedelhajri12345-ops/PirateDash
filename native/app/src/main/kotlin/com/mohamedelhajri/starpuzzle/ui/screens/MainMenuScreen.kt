@@ -142,9 +142,11 @@ fun MainMenuScreen(
     soundOn: Boolean,
     musicOn: Boolean,
     hapticsOn: Boolean,
+    motionOn: Boolean,
     onToggleSound: (Boolean) -> Unit,
     onToggleMusic: (Boolean) -> Unit,
     onToggleHaptics: (Boolean) -> Unit,
+    onToggleMotion: (Boolean) -> Unit,
     onPlay: () -> Unit,
     onWorldMap: () -> Unit,
     onDaily: () -> Unit,
@@ -155,6 +157,7 @@ fun MainMenuScreen(
     val nextLevel = progress.firstUnfinished()
     val level = remember(nextLevel) { LevelCatalog.getLevel(nextLevel) }
     var showSettings by remember { mutableStateOf(false) }
+    var showAwards by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         CelestialSky()
@@ -251,8 +254,9 @@ fun MainMenuScreen(
                 MenuChip("WORLDS", sound) { onWorldMap() }
                 MenuChip("DAILY", sound) { onDaily() }
                 MenuChip("SHOP", sound) { onOpenStore() }
+                MenuChip("AWARDS", sound) { showAwards = true }
                 Text(
-                    "v4.0.0",
+                    "v4.1.0",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFFF5F7FF).copy(alpha = 0.35f),
                     modifier = Modifier.padding(top = 20.dp)
@@ -260,6 +264,49 @@ fun MainMenuScreen(
             }
 
             Spacer(Modifier.height(28.dp))
+
+            // ── v4.1: daily streak — a flame worth keeping alive ──
+            val streak = remember { progress.streakCount() }
+            val streakDay = if (streak == 0) 0 else ((streak - 1) % 7) + 1
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                for (d in 1..7) {
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(30.dp)
+                            .background(
+                                if (d <= streakDay)
+                                    MenuGold.copy(alpha = if (d == 7) 1f else 0.75f)
+                                else Color(0xFF16204A),
+                                CircleShape
+                            )
+                            .border(
+                                if (d == 7) 1.5.dp else 0.dp,
+                                if (d == 7) Color(0xFFFFF3C4) else Color.Transparent,
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            if (d == 7) "★" else "$d",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (d <= streakDay) NavyTop else Color(0xFF9FA8CC)
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (streakDay == 0) "Play today to start your streak"
+                else "Day $streakDay — +100 coins every 7 days",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF9FA8CC)
+            )
+            Spacer(Modifier.height(18.dp))
 
             // ── today's missions (kept feature, quiet styling) ──
             var missionsRefresh by remember { mutableIntStateOf(0) }
@@ -333,12 +380,93 @@ fun MainMenuScreen(
         }
     }
 
+    if (showAwards) {
+        androidx.compose.ui.window.Dialog(onDismissRequest = { showAwards = false }) {
+            AchievementsDialog(progress) { showAwards = false }
+        }
+    }
+
     if (showSettings) {
         androidx.compose.ui.window.Dialog(onDismissRequest = { showSettings = false }) {
             SettingsDialog(
-                soundOn, musicOn, hapticsOn,
-                onToggleSound, onToggleMusic, onToggleHaptics
+                soundOn, musicOn, hapticsOn, motionOn,
+                onToggleSound, onToggleMusic, onToggleHaptics, onToggleMotion
             ) { showSettings = false }
+        }
+    }
+}
+
+/** v4.1: the achievements wall — progress visible, nothing to guess. */
+@Composable
+private fun AchievementsDialog(progress: GameProgress, onDismiss: () -> Unit) {
+    data class Ach(val name: String, val desc: String, val done: Boolean, val prog: String)
+    val t3 = progress.threeStarLevels()
+    val stars = progress.totalStars()
+    val bc = progress.bestCombo()
+    val dd = progress.dailyDoneCount()
+    val sk = progress.ownedSkins().size
+    val bu = progress.boostersUsed()
+    val achs = listOf(
+        Ach("First Clear", "Win your first level", stars > 0, "${stars.coerceAtMost(1)}/1"),
+        Ach("Perfect Run", "Finish a level with 3 stars", t3 >= 1, "$t3/1"),
+        Ach("Combo Master", "Reach a x5 combo", bc >= 5, "$bc/5"),
+        Ach("High Scorer", "Collect 100 stars", stars >= 100, "$stars/100"),
+        Ach("Daily Player", "Complete 3 daily challenges", dd >= 3, "$dd/3"),
+        Ach("Theme Collector", "Own 5 skins", sk >= 5, "$sk/5"),
+        Ach("Booster Expert", "Use 25 boosters", bu >= 25, "$bu/25")
+    )
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = Color(0xFF16204A)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(20.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text("ACHIEVEMENTS", style = MaterialTheme.typography.titleLarge,
+                color = Color(0xFFF5F7FF))
+            Spacer(Modifier.height(12.dp))
+            achs.forEach { a ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        if (a.done) "★" else "○",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = if (a.done) MenuGold else Color(0xFF6B7499)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            a.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (a.done) FontWeight.Bold else FontWeight.Normal,
+                            color = Color(0xFFF5F7FF)
+                        )
+                        Text(
+                            a.desc,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF9FA8CC)
+                        )
+                    }
+                    Text(
+                        if (a.done) "DONE" else a.prog,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (a.done) Color(0xFF66BB6A) else Color(0xFF9FA8CC)
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Button(onClick = onDismiss) { Text("OK") }
+            }
         }
     }
 }
@@ -365,9 +493,11 @@ private fun SettingsDialog(
     soundOn: Boolean,
     musicOn: Boolean,
     hapticsOn: Boolean,
+    motionOn: Boolean,
     onToggleSound: (Boolean) -> Unit,
     onToggleMusic: (Boolean) -> Unit,
     onToggleHaptics: (Boolean) -> Unit,
+    onToggleMotion: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     Surface(
@@ -381,6 +511,7 @@ private fun SettingsDialog(
             SettingRow("Sound effects", soundOn, onToggleSound)
             SettingRow("Background music", musicOn, onToggleMusic)
             SettingRow("Haptic feedback", hapticsOn, onToggleHaptics)
+            SettingRow("Motion effects", motionOn, onToggleMotion)
             Spacer(Modifier.height(10.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),

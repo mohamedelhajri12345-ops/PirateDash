@@ -107,7 +107,7 @@ class SoundManager(private val context: Context) {
         )
         .build()
 
-    enum class Sfx { PLACE, INVALID, CLEAR, COMBO, BOMB, STAR, GAME_OVER, COIN, CONFIRM, BACK, START, COMPLETE, HIGH_SCORE }
+    enum class Sfx { PLACE, INVALID, CLEAR, COMBO, BOMB, STAR, GAME_OVER, COIN, CONFIRM, BACK, START, COMPLETE, HIGH_SCORE, COMBO2, COMBO3, COMBO4 }
 
     /** Configuration table mapping every Sfx event to its audio parameters. */
     private val configTable: Map<Sfx, SoundConfig> = mapOf(
@@ -226,6 +226,33 @@ class SoundManager(private val context: Context) {
             pitchJitter = 0.01f,
             maxPolyphony = 1,
             eventClass = SoundClass.STING_REWARD,
+            duckMusic = true
+        ),
+        Sfx.COMBO2 to SoundConfig(
+            resId = R.raw.combo,
+            baseVolume = 0.95f,
+            basePitch = 1.00f,
+            pitchJitter = 0.02f,
+            maxPolyphony = 2,
+            eventClass = SoundClass.POWERUP_SPECIAL,
+            duckMusic = true
+        ),
+        Sfx.COMBO3 to SoundConfig(
+            resId = R.raw.combo,
+            baseVolume = 1.00f,
+            basePitch = 1.12f,
+            pitchJitter = 0.02f,
+            maxPolyphony = 2,
+            eventClass = SoundClass.POWERUP_SPECIAL,
+            duckMusic = true
+        ),
+        Sfx.COMBO4 to SoundConfig(
+            resId = R.raw.combo,
+            baseVolume = 1.00f,
+            basePitch = 1.25f,
+            pitchJitter = 0.02f,
+            maxPolyphony = 2,
+            eventClass = SoundClass.POWERUP_SPECIAL,
             duckMusic = true
         )
     )

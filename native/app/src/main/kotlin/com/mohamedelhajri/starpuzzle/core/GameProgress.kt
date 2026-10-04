@@ -27,6 +27,11 @@ interface SaveStore {
     fun saveBoosters(csv: String)
     fun loadMusic(): Boolean
     fun saveMusic(enabled: Boolean)
+    // v4.1: generic extension keys — streak, achievements, reduced motion
+    fun loadExtraInt(key: String, def: Int): Int
+    fun saveExtraInt(key: String, value: Int)
+    fun loadExtraBool(key: String, def: Boolean): Boolean
+    fun saveExtraBool(key: String, value: Boolean)
 }
 
 /** Progress helper over a SaveStore. */
@@ -131,7 +136,43 @@ class GameProgress(private val store: SaveStore) {
     }
 
     fun isDailyDone(key: String): Boolean = store.loadDailyDone(key)
-    fun markDailyDone(key: String) = store.saveDailyDone(key)
+    fun markDailyDone(key: String) {
+        if (!isDailyDone(key)) {
+            store.saveDailyDone(key)
+            store.saveExtraInt("daily_count", store.loadExtraInt("daily_count", 0) + 1)
+        }
+    }
+
+    // ── v4.1: daily streak — consecutive play days, +100 coins every 7th ──
+    fun refreshStreak(): Int {
+        val today = (System.currentTimeMillis() / 86_400_000L).toInt()
+        val last = store.loadExtraInt("streak_day", -1)
+        val streak = when (today) {
+            last -> store.loadExtraInt("streak_count", 0)
+            last + 1 -> store.loadExtraInt("streak_count", 0) + 1
+            else -> 1
+        }
+        store.saveExtraInt("streak_day", today)
+        store.saveExtraInt("streak_count", streak)
+        if (streak > 0 && streak % 7 == 0 && store.loadExtraInt("streak_bonus", -1) != today) {
+            store.saveExtraInt("streak_bonus", today)
+            addCoins(100)
+        }
+        return streak
+    }
+    fun streakCount(): Int = store.loadExtraInt("streak_count", 0)
+
+    // ── v4.1: achievement data points ──
+    fun recordBestCombo(combo: Int) {
+        if (combo > store.loadExtraInt("best_combo", 0))
+            store.saveExtraInt("best_combo", combo)
+    }
+    fun bestCombo(): Int = store.loadExtraInt("best_combo", 0)
+    fun incBoostersUsed() =
+        store.saveExtraInt("boosters_used", store.loadExtraInt("boosters_used", 0) + 1)
+    fun boostersUsed(): Int = store.loadExtraInt("boosters_used", 0)
+    fun dailyDoneCount(): Int = store.loadExtraInt("daily_count", 0)
+    fun threeStarLevels(): Int = stars.values.count { it >= 3 }
 
     // ── Store: boosters + skins, in-game currency ONLY (no real money,
     // no stars — approved spec) ─────────────────────────────────────
