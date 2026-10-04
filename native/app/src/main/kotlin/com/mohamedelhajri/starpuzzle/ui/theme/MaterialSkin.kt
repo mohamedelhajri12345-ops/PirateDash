@@ -120,9 +120,9 @@ fun DrawScope.drawMaterial(
             val grainColor = spec.edgeColor.copy(alpha = (0.22f * effectiveAlpha).coerceIn(0f, 1f))
             val path = Path().apply {
                 moveTo(topLeft.x + w * 0.10f, topLeft.y + h * 0.30f)
-                quadraticTo(topLeft.x + w * 0.50f, topLeft.y + h * 0.45f, topLeft.x + w * 0.90f, topLeft.y + h * 0.35f)
+                quadraticBezierTo(topLeft.x + w * 0.50f, topLeft.y + h * 0.45f, topLeft.x + w * 0.90f, topLeft.y + h * 0.35f)
                 moveTo(topLeft.x + w * 0.05f, topLeft.y + h * 0.65f)
-                quadraticTo(topLeft.x + w * 0.50f, topLeft.y + h * 0.80f, topLeft.x + w * 0.95f, topLeft.y + h * 0.70f)
+                quadraticBezierTo(topLeft.x + w * 0.50f, topLeft.y + h * 0.80f, topLeft.x + w * 0.95f, topLeft.y + h * 0.70f)
             }
             drawPath(
                 path = path,
