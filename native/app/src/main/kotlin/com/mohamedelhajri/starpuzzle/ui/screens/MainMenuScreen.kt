@@ -240,7 +240,7 @@ fun MainMenuScreen(
                 MenuChip("DAILY") { onDaily() }
                 MenuChip("SHOP") { onOpenStore() }
                 Text(
-                    "v3.0.1",
+                    "v3.1.0",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFFF5F7FF).copy(alpha = 0.35f),
                     modifier = Modifier.padding(top = 20.dp)

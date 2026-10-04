@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,7 +40,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.GameProgress
+import com.mohamedelhajri.starpuzzle.ui.theme.MaterialSkinCatalog
 import com.mohamedelhajri.starpuzzle.ui.theme.PieceSkins
+import com.mohamedelhajri.starpuzzle.ui.theme.drawMaterial
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import com.mohamedelhajri.starpuzzle.ui.theme.SkinState
 import com.mohamedelhajri.starpuzzle.ui.theme.skinPrice
 
@@ -201,6 +207,70 @@ fun StoreScreen(
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isSelected) StoreGold
                             else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+            Text(
+                "MATERIAL SKINS",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(10.dp))
+
+            // ── v3.1: REAL material skins — ice, fire, gems, wood, candy,
+            // chrome. Every cell is drawn with gloss, bevel and shadow. ──
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                items(MaterialSkinCatalog.premiumSkins) { skin ->
+                    val isOwned = skin.id in owned
+                    val isSelected = SkinState.active == skin.id
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable {
+                            if (isOwned) {
+                                SkinState.active = skin.id
+                                progress.saveSkin(skin.id)
+                                sound.play(SoundManager.Sfx.PLACE)
+                                refresh++
+                            } else if (progress.buySkinAt(skin.id, skin.price)) {
+                                SkinState.active = skin.id
+                                progress.saveSkin(skin.id)
+                                sound.play(SoundManager.Sfx.COIN)
+                                refresh++
+                            } else {
+                                sound.play(SoundManager.Sfx.INVALID)
+                            }
+                        }.padding(vertical = 4.dp)
+                    ) {
+                        Canvas(Modifier.size(66.dp)) {
+                            val cs = size.width / 3.4f
+                            for (k in 0 until 3) {
+                                drawMaterial(
+                                    topLeft = Offset(
+                                        k * (cs + size.width / 26f) + size.width / 14f,
+                                        size.height / 2f - cs / 2f
+                                    ),
+                                    size = Size(cs, cs),
+                                    spec = skin.materials[k * 3 + 1]
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            skin.name,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) StoreGold
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            if (isOwned) (if (isSelected) "ACTIVE" else "OWNED")
+                            else "${skin.price} ●",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) StoreGold
+                            else if (isOwned) Color(0xFF66BB6A)
+                            else Color(0xFF9FA8CC)
                         )
                     }
                 }

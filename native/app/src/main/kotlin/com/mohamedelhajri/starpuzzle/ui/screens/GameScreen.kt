@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -72,6 +73,11 @@ import com.mohamedelhajri.starpuzzle.ui.components.StarMilestoneStrip
 import com.mohamedelhajri.starpuzzle.core.LevelDefinition
 import com.mohamedelhajri.starpuzzle.core.Piece
 import com.mohamedelhajri.starpuzzle.ui.theme.pieceColor
+import com.mohamedelhajri.starpuzzle.ui.theme.SkinState
+import com.mohamedelhajri.starpuzzle.ui.theme.MaterialSkinCatalog
+import com.mohamedelhajri.starpuzzle.ui.theme.drawMaterial
+import com.mohamedelhajri.starpuzzle.engine.ParticleEngine
+import com.mohamedelhajri.starpuzzle.engine.ParticleEvent
 import com.mohamedelhajri.starpuzzle.ui.worlds.WorldBackdrop
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
@@ -103,6 +109,9 @@ fun GameScreen(
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
 
+    // v3.1: particle juice engine, seeded per level so replays feel the same
+    val particles = remember(levelId, restartKey) { ParticleEngine(level.seed) }
+
     // redraw trigger for tick-driven state (timer bar, time levels)
     var frame by remember { mutableStateOf(0) }
 
@@ -130,6 +139,9 @@ fun GameScreen(
     // combo popup
     var comboPopup by remember(levelId) { mutableStateOf(0) }
     val comboPopupAlpha = remember(levelId) { Animatable(0f) }
+    // v3.1: encouragement bubble (the reference game's "+120 EXCELLENT!")
+    var bubbleText by remember(levelId) { mutableStateOf("") }
+    val bubbleAlpha = remember(levelId) { Animatable(0f) }
 
     var resultShown by remember(levelId) { mutableStateOf(false) }
     // store-booster targeting mode (tap a cell to apply)
@@ -174,10 +186,10 @@ fun GameScreen(
             val dt = (now - last) / 1_000_000_000f
             last = now
             liveSession.tick(dt)
-            // Redraw per tick only when a tick-driven visual exists (timed
-            // levels' progress bar). Placements bump `frame` themselves,
-            // so other levels no longer recompose 60-120x per second.
-            if (level.timeLimit > 0) {
+            particles.tick(dt * 1000f)
+            // Redraw while anything is animating: the timed levels' progress
+            // bar or live particles/shake. Idle boards cost zero frames.
+            if (level.timeLimit > 0 || particles.isActive) {
                 frame++
                 if (liveSession.status != GameSession.Status.PLAYING) showResult()
             }
@@ -238,6 +250,56 @@ fun GameScreen(
                 }
                 sound.play(SoundManager.Sfx.COMBO)
             }
+
+            // ── v3.1 juice: particles + shake + encouragement bubble ──
+            val lx = dragPos.x - boardOrigin.x
+            val ly = dragPos.y - boardOrigin.y
+            val landColor = pieceColor(piece.colorIndex)
+            particles.spawn(ParticleEvent.PIECE_LAND, lx, ly, boardPx, listOf(landColor))
+            if (event.clearedCells.isNotEmpty()) {
+                for ((cx, cy) in event.clearedCells.take(60)) {
+                    particles.spawn(
+                        ParticleEvent.LINE_CLEAR,
+                        (cx + 0.5f) * boardPx, (cy + 0.5f) * boardPx,
+                        boardPx, listOf(landColor)
+                    )
+                }
+                if (event.lines >= 2) {
+                    particles.spawn(ParticleEvent.MULTI_CLEAR, lx, ly, boardPx, listOf(landColor))
+                    particles.triggerShake(min(2f + event.lines, 6f))
+                }
+            }
+            when (event.powerUpKind) {
+                Piece.SPECIAL_BOMB -> {
+                    particles.spawn(ParticleEvent.BOMB_BOOST, lx, ly, boardPx, listOf(landColor))
+                    particles.triggerShake(6f)
+                }
+                Piece.SPECIAL_LIGHTNING -> {
+                    particles.spawn(ParticleEvent.MULTI_CLEAR, lx, ly, boardPx, listOf(landColor))
+                    particles.triggerShake(4f)
+                }
+                Piece.SPECIAL_STAR -> particles.spawn(
+                    ParticleEvent.STAR_SPECIAL, lx, ly, boardPx,
+                    listOf(Color(0xFFFFD54F))
+                )
+            }
+            if (event.combo >= 2) {
+                particles.spawn(ParticleEvent.COMBO, lx, ly, boardPx, listOf(Color(0xFFFFD54F)))
+            }
+            if (event.points >= 25 || event.lines > 0) {
+                val praise = when {
+                    event.lines >= 3 -> "AMAZING!"
+                    event.lines == 2 -> "EXCELLENT!"
+                    event.combo >= 3 -> "EXCELLENT!"
+                    event.lines == 1 -> "GREAT!"
+                    else -> "NICE!"
+                }
+                bubbleText = "+${event.points} $praise"
+                scope.launch {
+                    bubbleAlpha.snapTo(1f)
+                    bubbleAlpha.animateTo(0f, tween(1000))
+                }
+            }
         }
         // a placement may have just finished the level (or lost it)
         if (liveSession.status != GameSession.Status.PLAYING) showResult()
@@ -284,6 +346,19 @@ fun GameScreen(
                                 }
                             )
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            val blx = (gx + 0.5f) * boardPx
+                            val bly = (gy + 0.5f) * boardPx
+                            when (kind) {
+                                GameProgress.BoosterKind.BOMB -> {
+                                    particles.spawn(ParticleEvent.BOMB_BOOST, blx, bly, boardPx, listOf(Color(0xFFFFD54F)))
+                                    particles.triggerShake(6f)
+                                }
+                                GameProgress.BoosterKind.LIGHTNING -> {
+                                    particles.spawn(ParticleEvent.MULTI_CLEAR, blx, bly, boardPx, listOf(Color(0xFF40C4FF)))
+                                    particles.triggerShake(4f)
+                                }
+                                else -> particles.spawn(ParticleEvent.STAR_SPECIAL, blx, bly, boardPx, listOf(Color(0xFFFFD54F)))
+                            }
                             frame++
                         }
                     }
@@ -423,6 +498,7 @@ fun GameScreen(
             ) {
                 BoardCanvas(
                     session = liveSession,
+                    particles = particles,
                     clearAnimCells = clearAnimCells,
                     clearProgress = clearProgress.value,
                     dragIndex = dragIndex,
@@ -554,6 +630,18 @@ fun GameScreen(
             )
         }
 
+        // ── v3.1: encouragement bubble ──
+        if (bubbleAlpha.value > 0f && bubbleText.isNotEmpty()) {
+            Text(
+                bubbleText,
+                style = MaterialTheme.typography.headlineSmall,
+                color = Color(0xFFFFD54F).copy(alpha = bubbleAlpha.value),
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(bottom = 60.dp)
+            )
+        }
+
         // ── Input: drag from tray onto board ──
         // NOTE: input lives on the ROOT so children (Back, MOVE, dialogs)
         // receive their taps first. The old invisible full-screen overlay
@@ -600,6 +688,7 @@ fun GameScreen(
 @Composable
 private fun BoardCanvas(
     session: GameSession,
+    particles: ParticleEngine,
     clearAnimCells: List<Pair<Int, Int>>,
     clearProgress: Float,
     dragIndex: Int,
@@ -609,6 +698,7 @@ private fun BoardCanvas(
     modifier: Modifier
 ) {
     Canvas(modifier = modifier) {
+        withTransform({ translate(particles.shakeOffsetX, particles.shakeOffsetY) }) {
         val n = session.board.size
         val cell = size.width / n
         val gap = cell * 0.08f
@@ -687,15 +777,18 @@ private fun BoardCanvas(
                 )
             }
 
-        // filled cells
+        // filled cells — v3.1: full material rendering (gloss, bevel, shadow)
+        val skin = MaterialSkinCatalog.getSkin(SkinState.active)
+        val matCount = skin.materials.size
         for (y in 0 until n)
             for (x in 0 until n) {
                 val color = session.board.colorAt(x, y)
                 if (color >= 0) {
-                    drawCellShape(
-                        pieceColor(color),
-                        Offset(x * cell + gap / 2, y * cell + gap / 2),
-                        cell - gap
+                    val idx = ((color % matCount) + matCount) % matCount
+                    drawMaterial(
+                        topLeft = Offset(x * cell + gap / 2, y * cell + gap / 2),
+                        size = Size(cell - gap, cell - gap),
+                        spec = skin.materials[idx]
                     )
                 }
             }
@@ -714,25 +807,10 @@ private fun BoardCanvas(
                 )
             }
         }
+        // v3.1: the particle layer, on top of everything
+        particles.draw(this)
+        }
     }
-}
-
-/** A colored cell: rounded square with a soft drop shadow and top light. */
-private fun DrawScope.drawCellShape(color: Color, topLeft: Offset, cellSize: Float) {
-    val r = CornerRadius(cellSize * 0.22f)
-    drawRoundRect(
-        color = color.copy(alpha = 0.35f),
-        topLeft = topLeft.copy(y = topLeft.y + cellSize * 0.10f),
-        size = Size(cellSize, cellSize),
-        cornerRadius = r
-    )
-    drawRoundRect(color, topLeft, Size(cellSize, cellSize), r)
-    drawRoundRect(
-        color = Color.White.copy(alpha = 0.20f),
-        topLeft = topLeft,
-        size = Size(cellSize, cellSize * 0.45f),
-        cornerRadius = CornerRadius(cellSize * 0.22f, cellSize * 0.30f)
-    )
 }
 
 /** Draws a piece (used by the tray and the drag overlay). */
@@ -746,9 +824,10 @@ fun DrawScope.drawPiece(
         drawSpecialGlyph(piece.colorIndex, origin, cellSize, alpha)
         return
     }
-    val color = pieceColor(piece.colorIndex).copy(alpha = alpha)
     val gap = cellSize * 0.08f
-    val r = CornerRadius((cellSize - gap) * 0.22f)
+    val skin = MaterialSkinCatalog.getSkin(SkinState.active)
+    val matCount = skin.materials.size
+    val idx = ((piece.colorIndex % matCount) + matCount) % matCount
     for (i in 0 until piece.cellRows)
         for (j in 0 until piece.cellCols)
             if (piece.filled(i, j)) {
@@ -756,8 +835,7 @@ fun DrawScope.drawPiece(
                     origin.x + j * cellSize + gap / 2,
                     origin.y + i * cellSize + gap / 2
                 )
-                val s = cellSize - gap
-                drawRoundRect(color, tl, Size(s, s), r)
+                drawMaterial(tl, Size(cellSize - gap, cellSize - gap), skin.materials[idx], alpha)
             }
 }
 

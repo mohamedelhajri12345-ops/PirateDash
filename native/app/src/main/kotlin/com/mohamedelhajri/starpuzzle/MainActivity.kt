@@ -24,6 +24,7 @@ import com.mohamedelhajri.starpuzzle.ui.screens.GameScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.MainMenuScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.StoreScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.WorldMapScreen
+import com.mohamedelhajri.starpuzzle.ui.theme.MaterialSkinCatalog
 import com.mohamedelhajri.starpuzzle.ui.theme.PieceSkins
 import com.mohamedelhajri.starpuzzle.ui.theme.SkinState
 import com.mohamedelhajri.starpuzzle.ui.theme.StarPuzzleTheme
@@ -57,7 +58,7 @@ class MainActivity : ComponentActivity() {
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             runCatching {
                 java.io.File(filesDir, "crash.log").writeText(
-                    "version=3.0.1\n" + android.util.Log.getStackTraceString(throwable)
+                    "version=3.1.0\n" + android.util.Log.getStackTraceString(throwable)
                 )
             }
             previous?.uncaughtException(thread, throwable)
@@ -71,7 +72,7 @@ fun StarPuzzleApp() {
     val store = remember { PrefsSaveStore(context) }
     val sound = remember { SoundManager(context) }
     // restore the saved piece-color skin (coerced against catalog size)
-    SkinState.active = store.loadSkin().coerceIn(0, PieceSkins.size - 1)
+    SkinState.active = store.loadSkin().coerceIn(0, MaterialSkinCatalog.allSkins.size - 1)
     val progress = remember { GameProgress(store) }
 
     var screen by remember { mutableStateOf<Screen>(Screen.Menu) }
@@ -91,8 +92,8 @@ fun StarPuzzleApp() {
     DisposableEffect(sound, musicOn) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> sound.pauseAll()
-                Lifecycle.Event.ON_RESUME -> sound.resumeMusic()
+                Lifecycle.Event.ON_PAUSE -> sound.onPause()
+                Lifecycle.Event.ON_RESUME -> sound.onResume()
                 else -> {}
             }
         }

@@ -22,7 +22,9 @@ val TextSecondary = Color(0xFF9FA8CC)
 // One color per piece shape (9 shapes = 9 colors), per selectable skin.
 // The size contract lives in PieceSkins.kt: it can never again ship
 // shorter than the piece list (the v2.0.x "crash on any move" class).
-private val PieceColors get() = PieceSkins[SkinState.active].colors
+// v3.1: SkinState may hold a material skin id (20..25) — fall back to
+// the classic palette then; materials carry their own colors.
+private val PieceColors get() = PieceSkins.getOrNull(SkinState.active)?.colors ?: PieceSkins[0].colors
 
 /** Safe palette lookup — any index resolves to a real color, never a crash. */
 fun pieceColor(index: Int): Color {

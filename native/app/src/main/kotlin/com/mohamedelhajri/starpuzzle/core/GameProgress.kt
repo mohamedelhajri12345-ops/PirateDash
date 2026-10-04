@@ -205,6 +205,16 @@ class GameProgress(private val store: SaveStore) {
         return true
     }
 
+    /** Buy with an explicit price (material skins carry their own catalog price). */
+    fun buySkinAt(skinId: Int, price: Int): Boolean {
+        if (skinOwned(skinId)) return true
+        if (!spendCoins(price)) return false
+        store.saveOwnedSkins(store.loadOwnedSkins().let {
+            if (it.isBlank()) "$skinId" else "$it,$skinId"
+        })
+        return true
+    }
+
     /** First run: default skin owned + a small starter booster kit. */
     private fun ensureStarterKit() {
         val raw = store.loadOwnedSkins()
