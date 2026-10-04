@@ -75,8 +75,9 @@ fun StarPuzzleApp() {
     // restore the saved piece-color skin (coerced against catalog size)
     SkinState.active = store.loadSkin().coerceIn(0, MaterialSkinCatalog.allSkins.size - 1)
     FeelState.motionOn = store.loadExtraBool("motion", true)
-    progress.refreshStreak()
     val progress = remember { GameProgress(store) }
+    // v4.1: one streak refresh per app open (+100 coins on every 7th day)
+    progress.refreshStreak()
 
     var screen by remember { mutableStateOf<Screen>(Screen.Menu) }
     var soundOn by remember { mutableStateOf(store.loadSound()) }
