@@ -107,7 +107,7 @@ class SoundManager(private val context: Context) {
         )
         .build()
 
-    enum class Sfx { PLACE, INVALID, CLEAR, COMBO, BOMB, STAR, GAME_OVER, COIN }
+    enum class Sfx { PLACE, INVALID, CLEAR, COMBO, BOMB, STAR, GAME_OVER, COIN, CONFIRM, BACK, START, COMPLETE, HIGH_SCORE }
 
     /** Configuration table mapping every Sfx event to its audio parameters. */
     private val configTable: Map<Sfx, SoundConfig> = mapOf(
@@ -182,6 +182,51 @@ class SoundManager(private val context: Context) {
             maxPolyphony = 3,
             eventClass = SoundClass.STING_REWARD,
             duckMusic = false
+        ),
+        Sfx.CONFIRM to SoundConfig(
+            resId = R.raw.confirm,
+            baseVolume = 0.80f,
+            basePitch = 1.05f,
+            pitchJitter = 0.02f,
+            maxPolyphony = 2,
+            eventClass = SoundClass.UI_TAP,
+            duckMusic = false
+        ),
+        Sfx.BACK to SoundConfig(
+            resId = R.raw.back,
+            baseVolume = 0.70f,
+            basePitch = 1.00f,
+            pitchJitter = 0.02f,
+            maxPolyphony = 2,
+            eventClass = SoundClass.UI_TAP,
+            duckMusic = false
+        ),
+        Sfx.START to SoundConfig(
+            resId = R.raw.level_start,
+            baseVolume = 0.85f,
+            basePitch = 1.00f,
+            pitchJitter = 0.02f,
+            maxPolyphony = 1,
+            eventClass = SoundClass.STING_REWARD,
+            duckMusic = true
+        ),
+        Sfx.COMPLETE to SoundConfig(
+            resId = R.raw.level_complete,
+            baseVolume = 0.95f,
+            basePitch = 1.00f,
+            pitchJitter = 0.01f,
+            maxPolyphony = 1,
+            eventClass = SoundClass.STING_REWARD,
+            duckMusic = true
+        ),
+        Sfx.HIGH_SCORE to SoundConfig(
+            resId = R.raw.high_score,
+            baseVolume = 1.00f,
+            basePitch = 1.08f,
+            pitchJitter = 0.01f,
+            maxPolyphony = 1,
+            eventClass = SoundClass.STING_REWARD,
+            duckMusic = true
         )
     )
 

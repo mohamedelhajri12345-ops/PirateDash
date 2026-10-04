@@ -170,6 +170,8 @@ fun GameScreen(
             if (daily) progress.markDailyDone(LevelCatalog.dailyKey())
             // "complete N levels" mission: this win counts as one
             progress.trackDailyMission(lines = 0, score = 0, levelDone = true)
+            sound.play(SoundManager.Sfx.COMPLETE)
+            if (stars >= 3) sound.play(SoundManager.Sfx.HIGH_SCORE)
             sound.play(SoundManager.Sfx.COIN)
         } else {
             sound.play(SoundManager.Sfx.GAME_OVER)
@@ -177,6 +179,9 @@ fun GameScreen(
     }
 
     BackHandler { onExit() }
+
+    // a soft sting when the level opens (and on retry)
+    LaunchedEffect(levelId, restartKey) { sound.play(SoundManager.Sfx.START) }
 
     // timer + frame redraw loop
     LaunchedEffect(liveSession) {

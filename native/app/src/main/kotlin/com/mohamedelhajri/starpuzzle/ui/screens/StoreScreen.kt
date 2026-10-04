@@ -101,7 +101,7 @@ fun StoreScreen(
                 }
                 Spacer(Modifier.weight(1f))
                 OutlinedButton(
-                    onClick = { sound.play(SoundManager.Sfx.PLACE); onBack() },
+                    onClick = { sound.play(SoundManager.Sfx.BACK); onBack() },
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.onSurface
@@ -177,7 +177,7 @@ fun StoreScreen(
                             if (isOwned) {
                                 SkinState.active = i
                                 progress.saveSkin(i)
-                                sound.play(SoundManager.Sfx.PLACE)
+                                sound.play(SoundManager.Sfx.CONFIRM)
                                 refresh++
                             } else if (progress.buySkin(i)) {
                                 SkinState.active = i
@@ -232,7 +232,7 @@ fun StoreScreen(
                             if (isOwned) {
                                 SkinState.active = skin.id
                                 progress.saveSkin(skin.id)
-                                sound.play(SoundManager.Sfx.PLACE)
+                                sound.play(SoundManager.Sfx.CONFIRM)
                                 refresh++
                             } else if (progress.buySkinAt(skin.id, skin.price)) {
                                 SkinState.active = skin.id
@@ -258,6 +258,11 @@ fun StoreScreen(
                             }
                         }
                         Spacer(Modifier.height(4.dp))
+                        Text(
+                            "★ EPIC",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFFB388FF)
+                        )
                         Text(
                             skin.name,
                             style = MaterialTheme.typography.labelSmall,

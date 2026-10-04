@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,6 +58,7 @@ import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.DailyMissions
 import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
+import com.mohamedelhajri.starpuzzle.ui.components.SpButton
 
 // ── The approved celestial main menu ─────────────────────────────────
 // Moon, stars, one gold accent, extreme minimalism.
@@ -164,11 +166,48 @@ fun MainMenuScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // ── top bar: player identity + live counters + settings ──
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { showSettings = true }) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(
+                            Brush.verticalGradient(listOf(MenuGoldSoft, MenuGold)),
+                            CircleShape
+                        )
+                        .border(2.dp, Color(0xFFFFF3C4), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("M", color = NavyTop, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                }
+                Spacer(Modifier.weight(1f))
+                Box(
+                    modifier = Modifier
+                        .border(1.dp, MenuGold.copy(alpha = 0.45f), RoundedCornerShape(20.dp))
+                        .background(MenuGold.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                ) {
+                    Text("★ $totalStars", style = MaterialTheme.typography.titleSmall,
+                        color = MenuGoldSoft)
+                }
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .border(1.dp, MenuGold.copy(alpha = 0.45f), RoundedCornerShape(20.dp))
+                        .background(MenuGold.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+                        .padding(horizontal = 12.dp, vertical = 5.dp)
+                ) {
+                    Text("● $coins", style = MaterialTheme.typography.titleSmall,
+                        color = MenuGoldSoft)
+                }
+                Spacer(Modifier.width(6.dp))
+                IconButton(onClick = {
+                    sound.play(SoundManager.Sfx.CONFIRM)
+                    showSettings = true
+                }) {
                     Icon(Icons.Filled.Settings, contentDescription = "Settings",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -186,45 +225,18 @@ fun MainMenuScreen(
                 color = Color(0xFFF5F7FF)
             )
             Spacer(Modifier.height(10.dp))
-            // star counter chip
-            Box(
-                modifier = Modifier
-                    .border(1.dp, MenuGold.copy(alpha = 0.45f), RoundedCornerShape(20.dp))
-                    .padding(horizontal = 14.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    "★ $totalStars   ● $coins",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MenuGoldSoft
-                )
-            }
 
             Spacer(Modifier.height(44.dp))
 
-            // ── the big round glossy PLAY button ──
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(MenuGoldSoft, MenuGold, Color(0xFFE6A817))
-                        ),
-                        CircleShape
-                    )
-                    .border(2.dp, Color(0xFFFFE082), CircleShape)
-                    .clickable {
-                        sound.play(SoundManager.Sfx.PLACE)
-                        onPlay()
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "PLAY",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Black,
-                    color = NavyTop
-                )
-            }
+            // ── the hero PLAY: tactile depth, breathing glow, haptic tick ──
+            SpButton(
+                label = "PLAY",
+                big = true,
+                glow = true,
+                sound = sound,
+                sfx = SoundManager.Sfx.START,
+                onClick = onPlay
+            )
             Spacer(Modifier.height(14.dp))
             Text(
                 "Level $nextLevel · ${LevelCatalog.worldName(level.world)}",
@@ -236,11 +248,11 @@ fun MainMenuScreen(
 
             // quiet chip row
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                MenuChip("WORLDS") { onWorldMap() }
-                MenuChip("DAILY") { onDaily() }
-                MenuChip("SHOP") { onOpenStore() }
+                MenuChip("WORLDS", sound) { onWorldMap() }
+                MenuChip("DAILY", sound) { onDaily() }
+                MenuChip("SHOP", sound) { onOpenStore() }
                 Text(
-                    "v3.1.0",
+                    "v4.0.0",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFFF5F7FF).copy(alpha = 0.35f),
                     modifier = Modifier.padding(top = 20.dp)
@@ -332,9 +344,12 @@ fun MainMenuScreen(
 }
 
 @Composable
-private fun MenuChip(label: String, onClick: () -> Unit) {
+private fun MenuChip(label: String, sound: SoundManager, onClick: () -> Unit) {
     OutlinedButton(
-        onClick = onClick,
+        onClick = {
+            sound.play(SoundManager.Sfx.CONFIRM)
+            onClick()
+        },
         border = BorderStroke(
             1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
         ),
