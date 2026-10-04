@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +50,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -59,6 +61,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.GameSession
@@ -522,9 +525,12 @@ fun GameScreen(
                         coins = earnedCoins,
                         onReplay = { restartKey++; resultShown = false; earnedStars = 0 },
                         onMap = onWorldMap,
-                        onNext = if (liveSession.status == GameSession.Status.WON &&
+                        // the daily challenge never chains into the level flow
+                        onNext = if (!daily && liveSession.status == GameSession.Status.WON &&
                             level.id < LevelCatalog.TOTAL_LEVELS)
-                            ({ onNext(level.id + 1) }) else null
+                            ({ onNext(level.id + 1) }) else null,
+                        onDone = if (daily && liveSession.status == GameSession.Status.WON)
+                            ({ onExit() }) else null
                     )
                 }
             }
@@ -753,14 +759,15 @@ private fun ResultContent(
     coins: Int,
     onReplay: () -> Unit,
     onMap: () -> Unit,
-    onNext: (() -> Unit)?
+    onNext: (() -> Unit)?,
+    onDone: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier.padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            if (won) "LEVEL COMPLETE!" else "LEVEL FAILED",
+            if (won) "LEVEL COMPLETE!" else "THE SKY IS FULL!",
             style = MaterialTheme.typography.headlineMedium,
             color = if (won) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.error
@@ -805,23 +812,65 @@ private fun ResultContent(
             )
         }
         Spacer(Modifier.height(24.dp))
-        if (onNext != null) {
-            Button(
-                onClick = onNext,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary),
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("NEXT LEVEL") }
-            Spacer(Modifier.height(8.dp))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onReplay, modifier = Modifier.weight(1f)) {
-                Icon(Icons.Filled.Refresh, null, Modifier.size(16.dp))
-                Text(" RETRY")
+        when {
+            onNext != null -> {
+                GlossyButton("NEXT LEVEL", onNext, Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onReplay, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Filled.Refresh, null, Modifier.size(16.dp))
+                        Text(" RETRY")
+                    }
+                    OutlinedButton(onClick = onMap, modifier = Modifier.weight(1f)) {
+                        Text("MAP")
+                    }
+                }
             }
-            OutlinedButton(onClick = onMap, modifier = Modifier.weight(1f)) {
-                Text("MAP")
+            onDone != null -> {
+                GlossyButton("DONE", onDone, Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = onReplay, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Filled.Refresh, null, Modifier.size(16.dp))
+                    Text(" RETRY")
+                }
+            }
+            else -> {
+                // the sky is full: RETRY is the warm gold call to action
+                GlossyButton("RETRY", onReplay, Modifier.fillMaxWidth())
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = onMap, modifier = Modifier.fillMaxWidth()) {
+                    Text("WORLD MAP")
+                }
             }
         }
+    }
+}
+
+/**
+ * The glossy primary CTA from the reference game, in our night-sky palette:
+ * a vertical gold gradient with a soft sheen band near the top edge.
+ */
+@Composable
+private fun GlossyButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val base = MaterialTheme.colorScheme.primary
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(Brush.verticalGradient(listOf(base, base.copy(alpha = 0.68f))))
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.35f),
+                RoundedCornerShape(18.dp)
+            )
+            .clickable { onClick() }
+            .padding(vertical = 14.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text,
+            style = MaterialTheme.typography.titleMedium,
+            letterSpacing = 1.sp,
+            color = MaterialTheme.colorScheme.onPrimary
+        )
     }
 }

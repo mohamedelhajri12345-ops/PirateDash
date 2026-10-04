@@ -65,8 +65,12 @@ class GameProgress(private val store: SaveStore) {
         val raw = store.loadMissions()
         val parts = raw.split('|')
         if (parts.size == 7 && parts[0] == day) {
+            // toIntOrNull: a corrupted legacy string can never crash startup
             return MissionState(
-                day, parts[1].toInt(), parts[2].toInt(), parts[3].toInt(),
+                day,
+                parts[1].toIntOrNull() ?: 0,
+                parts[2].toIntOrNull() ?: 0,
+                parts[3].toIntOrNull() ?: 0,
                 booleanArrayOf(parts[4] == "1", parts[5] == "1", parts[6] == "1")
             )
         }
@@ -106,13 +110,13 @@ class GameProgress(private val store: SaveStore) {
         return true
     }
 
-    /** Atomic coin spend for boosters: false when not enough coins. */
-    /** Mission/mission-claim coin grant — never negative, never throws. */
+    /** Mission-claim coin grant — never negative, never throws. */
     fun addCoins(amount: Int) {
         if (amount <= 0) return
         store.saveCoins(store.loadCoins() + amount)
     }
 
+    /** Atomic coin spend for boosters: false when not enough coins. */
     fun spendCoins(amount: Int): Boolean {
         val c = store.loadCoins()
         if (c < amount) return false

@@ -81,6 +81,7 @@ class PrefsSaveStore(context: Context) : SaveStore {
         private const val KEY_STARS = "stars"
         private const val KEY_COINS = "coins"
         private const val KEY_BEST = "best_endless"
+        private const val KEY_MISSIONS = "missions"
         private const val KEY_SOUND = "sound"
         private const val KEY_HAPTICS = "haptics"
     }
