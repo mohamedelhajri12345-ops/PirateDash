@@ -343,5 +343,13 @@ class LevelCatalogTest {
         override fun saveBoosters(csv: String) { boosters = csv }
         override fun loadMusic() = music
         override fun saveMusic(enabled: Boolean) { music = enabled }
+
+        // v4.1 generic extra keys
+        private val extraInts = mutableMapOf<String, Int>()
+        private val extraBools = mutableMapOf<String, Boolean>()
+        override fun loadExtraInt(key: String, def: Int) = extraInts[key] ?: def
+        override fun saveExtraInt(key: String, value: Int) { extraInts[key] = value }
+        override fun loadExtraBool(key: String, def: Boolean) = extraBools[key] ?: def
+        override fun saveExtraBool(key: String, value: Boolean) { extraBools[key] = value }
     }
 }
