@@ -30,6 +30,15 @@ class GameBoard(val size: Int = 10) {
     private fun inBounds(x: Int, y: Int) = x in 0 until size && y in 0 until size
     private fun clamp(v: Int) = v.coerceIn(0, size - 1)
 
+    /** Would placing at (x, y) complete a row or column? Prefill never
+     *  does this: a completed line is instantly cleared by normalization,
+     *  silently deleting the CLEANUP objective's dirt. */
+    private fun wouldComplete(x: Int, y: Int): Boolean {
+        val rowFull = (0 until size).all { it == x || cells[y][it] >= 0 }
+        val colFull = (0 until size).all { it == y || cells[it][x] >= 0 }
+        return rowFull || colFull
+    }
+
     /** True if [piece] fits fully inside the board without overlapping. */
     fun canPut(piece: Piece, x: Int, y: Int): Boolean {
         if (!inBounds(x, y)) return false
