@@ -337,5 +337,11 @@ class LevelCatalogTest {
         private var missions = ""
         override fun loadMissions() = missions
         override fun saveMissions(state: String) { missions = state }
+        override fun loadOwnedSkins(): String = ownedSkins
+        override fun saveOwnedSkins(csv: String) { ownedSkins = csv }
+        override fun loadBoosters(): String = boosters
+        override fun saveBoosters(csv: String) { boosters = csv }
+        override fun loadMusic() = music
+        override fun saveMusic(enabled: Boolean) { music = enabled }
     }
 }
