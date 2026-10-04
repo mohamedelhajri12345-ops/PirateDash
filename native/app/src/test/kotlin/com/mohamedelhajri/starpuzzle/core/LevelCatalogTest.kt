@@ -189,8 +189,10 @@ class LevelCatalogTest {
     @Test
     fun adjacentLevelsNeverRepeatObjectiveOutsideWorld1() {
         // the variety rule: two consecutive levels in the same world (that
-        // are not both the boss) never share an objective type
-        for (id in 11..999) {
+        // are not both the boss) never share an objective type.
+        // World 1's tutorial deliberately repeats SCORE runs — it starts
+        // at world 2.
+        for (id in 101..999) {
             val a = LevelCatalog.getLevel(id)
             val b = LevelCatalog.getLevel(id + 1)
             if (a.world == b.world) {
