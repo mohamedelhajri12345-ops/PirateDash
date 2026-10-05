@@ -256,7 +256,7 @@ fun MainMenuScreen(
                 MenuChip("SHOP", sound) { onOpenStore() }
                 MenuChip("AWARDS", sound) { showAwards = true }
                 Text(
-                    "v4.1.0",
+                    "v4.2.1",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color(0xFFF5F7FF).copy(alpha = 0.35f),
                     modifier = Modifier.padding(top = 20.dp)
