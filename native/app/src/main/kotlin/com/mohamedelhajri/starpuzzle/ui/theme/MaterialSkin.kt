@@ -365,8 +365,65 @@ object MaterialSkinCatalog {
         )
     )
 
+    /** 7. VOLCANO BASALT (ID 26) — dark porous rock with molten lava cracks. */
+    val VOLCANO = MaterialSkin(
+        id = 26,
+        name = "VOLCANO BASALT",
+        isPremium = true,
+        price = 700,
+        materials = listOf(
+            MaterialSpec(Color(0xFF3E2723), Color(0xFF1B0A05), Color(0xFFFF6D00), 0.55f, 0.16f, 0.25f, 0.50f, 0.35f, OverlayPattern.SPARKLE, 0.30f, Offset(0.45f, 0.45f)),
+            MaterialSpec(Color(0xFF4E342E), Color(0xFF231008), Color(0xFFFF9100), 0.55f, 0.16f, 0.25f, 0.50f, 0.35f, OverlayPattern.SPARKLE, 0.28f, Offset(0.40f, 0.50f)),
+            MaterialSpec(Color(0xFF5D4037), Color(0xFF2B1206), Color(0xFFFF3D00), 0.60f, 0.16f, 0.25f, 0.50f, 0.38f, OverlayPattern.SPARKLE, 0.32f, Offset(0.50f, 0.40f)),
+            MaterialSpec(Color(0xFF33221C), Color(0xFF140803), Color(0xFFFFAB40), 0.50f, 0.16f, 0.25f, 0.50f, 0.32f, OverlayPattern.SPARKLE, 0.26f, Offset(0.55f, 0.45f)),
+            MaterialSpec(Color(0xFF6D4C41), Color(0xFF351208), Color(0xFFFFD600), 0.60f, 0.16f, 0.25f, 0.50f, 0.38f, OverlayPattern.SPARKLE, 0.34f, Offset(0.45f, 0.55f)),
+            MaterialSpec(Color(0xFF3E2723), Color(0xFF1B0A05), Color(0xFFFF6D00), 0.55f, 0.16f, 0.25f, 0.50f, 0.35f, OverlayPattern.SPARKLE, 0.30f, Offset(0.42f, 0.42f)),
+            MaterialSpec(Color(0xFF26180F), Color(0xFF0D0402), Color(0xFFFF5722), 0.50f, 0.16f, 0.25f, 0.50f, 0.30f, OverlayPattern.SPARKLE, 0.28f, Offset(0.48f, 0.48f)),
+            MaterialSpec(Color(0xFF4E342E), Color(0xFF231008), Color(0xFFFF9100), 0.55f, 0.16f, 0.25f, 0.50f, 0.35f, OverlayPattern.SPARKLE, 0.30f, Offset(0.44f, 0.46f)),
+            MaterialSpec(Color(0xFF5D4037), Color(0xFF2B1206), Color(0xFFFF3D00), 0.60f, 0.16f, 0.25f, 0.50f, 0.38f, OverlayPattern.SPARKLE, 0.32f, Offset(0.46f, 0.44f))
+        )
+    )
+
+    /** 8. ARCTIC CHILLY (ID 27) — pale powder-blue frost, softer than Glacial Ice. */
+    val CHILLY = MaterialSkin(
+        id = 27,
+        name = "ARCTIC CHILLY",
+        isPremium = true,
+        price = 520,
+        materials = listOf(
+            MaterialSpec(Color(0xFFE1F5FE), Color(0xFF81D4FA), Color(0xFFFFFFFF), 0.50f, 0.26f, 0.55f, 0.12f, 0.20f, OverlayPattern.FROST, 0.18f, Offset(0.28f, 0.22f)),
+            MaterialSpec(Color(0xFFB3E5FC), Color(0xFF4FC3F7), Color(0xFFFFFFFF), 0.50f, 0.26f, 0.55f, 0.12f, 0.20f, OverlayPattern.FROST, 0.18f, Offset(0.28f, 0.22f)),
+            MaterialSpec(Color(0xFFE3F2FD), Color(0xFF29B6F6), Color(0xFFFFFFFF), 0.50f, 0.26f, 0.55f, 0.12f, 0.20f, OverlayPattern.FROST, 0.18f, Offset(0.28f, 0.22f)),
+            MaterialSpec(Color(0xFFD1ECF9), Color(0xFF4DD0E1), Color(0xFFFFFFFF), 0.50f, 0.26f, 0.55f, 0.12f, 0.20f, OverlayPattern.FROST, 0.18f, Offset(0.28f, 0.22f)),
+            MaterialSpec(Color(0xFFCDEDF9), Color(0xFF0288D1), Color(0xFFFFFFFF), 0.52f, 0.26f, 0.55f, 0.12f, 0.20f, OverlayPattern.FROST, 0.18f, Offset(0.28f, 0.22f)),
+            MaterialSpec(Color(0xFFEAF8FF), Color(0xFF039BE5), Color(0xFFFFFFFF), 0.50f, 0.26f, 0.55f, 0.12f, 0.20f, OverlayPattern.FROST, 0.18f, Offset(0.28f, 0.22f)),
+            MaterialSpec(Color(0xFFC9EDF7), Color(0xFF26C6DA), Color(0xFFFFFFFF), 0.50f, 0.26f, 0.55f, 0.12f, 0.20f, OverlayPattern.FROST, 0.18f, Offset(0.28f, 0.22f)),
+            MaterialSpec(Color(0xFFE1F5FE), Color(0xFF81D4FA), Color(0xFFFFFFFF), 0.50f, 0.26f, 0.55f, 0.12f, 0.20f, OverlayPattern.FROST, 0.18f, Offset(0.28f, 0.22f)),
+            MaterialSpec(Color(0xFFD6F1FF), Color(0xFF03A9F4), Color(0xFFFFFFFF), 0.50f, 0.26f, 0.55f, 0.12f, 0.20f, OverlayPattern.FROST, 0.18f, Offset(0.28f, 0.22f))
+        )
+    )
+
+    /** 9. IRON FORGE (ID 28) — dark riveted industrial iron, heavier than Chrome Steel. */
+    val IRON = MaterialSkin(
+        id = 28,
+        name = "IRON FORGE",
+        isPremium = true,
+        price = 620,
+        materials = listOf(
+            MaterialSpec(Color(0xFF616161), Color(0xFF212121), Color(0xFFE0E0E0), 0.28f, 0.10f, 0.14f, 0.14f, 0.55f, OverlayPattern.MATTE, 0.12f, Offset(0.30f, 0.20f)),
+            MaterialSpec(Color(0xFF727272), Color(0xFF2B2B2B), Color(0xFFE0E0E0), 0.28f, 0.10f, 0.14f, 0.14f, 0.55f, OverlayPattern.MATTE, 0.12f, Offset(0.30f, 0.20f)),
+            MaterialSpec(Color(0xFF555555), Color(0xFF1A1A1A), Color(0xFFD7D7D7), 0.28f, 0.10f, 0.14f, 0.14f, 0.55f, OverlayPattern.MATTE, 0.12f, Offset(0.30f, 0.20f)),
+            MaterialSpec(Color(0xFF848484), Color(0xFF333333), Color(0xFFEAEAEA), 0.28f, 0.10f, 0.14f, 0.14f, 0.55f, OverlayPattern.MATTE, 0.12f, Offset(0.30f, 0.20f)),
+            MaterialSpec(Color(0xFF4E4E4E), Color(0xFF161616), Color(0xFFCCCCCC), 0.28f, 0.10f, 0.14f, 0.14f, 0.55f, OverlayPattern.MATTE, 0.12f, Offset(0.30f, 0.20f)),
+            MaterialSpec(Color(0xFF6B6B6B), Color(0xFF242424), Color(0xFFE0E0E0), 0.28f, 0.10f, 0.14f, 0.14f, 0.55f, OverlayPattern.MATTE, 0.12f, Offset(0.30f, 0.20f)),
+            MaterialSpec(Color(0xFF787878), Color(0xFF2E2E2E), Color(0xFFE6E6E6), 0.28f, 0.10f, 0.14f, 0.14f, 0.55f, OverlayPattern.MATTE, 0.12f, Offset(0.30f, 0.20f)),
+            MaterialSpec(Color(0xFF5A5A5A), Color(0xFF1D1D1D), Color(0xFFD9D9D9), 0.28f, 0.10f, 0.14f, 0.14f, 0.55f, OverlayPattern.MATTE, 0.12f, Offset(0.30f, 0.20f)),
+            MaterialSpec(Color(0xFF686868), Color(0xFF222222), Color(0xFFDEDEDE), 0.28f, 0.10f, 0.14f, 0.14f, 0.55f, OverlayPattern.MATTE, 0.12f, Offset(0.30f, 0.20f))
+        )
+    )
+
     /** All premium material skins. */
-    val premiumSkins = listOf(ICE, FIRE, GEM, WOOD, CANDY, METAL)
+    val premiumSkins = listOf(ICE, FIRE, GEM, WOOD, CANDY, METAL, VOLCANO, CHILLY, IRON)
 
     /** Full combined list of classic legacy skins + premium material skins. */
     val allSkins: List<MaterialSkin> by lazy {

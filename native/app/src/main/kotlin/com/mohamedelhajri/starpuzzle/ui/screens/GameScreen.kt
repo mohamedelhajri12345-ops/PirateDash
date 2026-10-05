@@ -911,6 +911,29 @@ private fun BoardCanvas(
                     )
                 }
             }
+        // v6.1: golden spark particles rising from the burst (the video's
+        // satisfying sparkle feel — procedural, zero bitmap cost)
+        if (clearProgress < 1f && clearAnimCells.isNotEmpty()) {
+            for (k in clearAnimCells.indices) {
+                val (x, y) = clearAnimCells[k]
+                for (j in 0 until 3) {
+                    val seed = ((k * 31 + j * 17) % 100) / 100f
+                    val delay = seed * 0.35f
+                    val pp = ((clearProgress - delay) / (1f - delay)).coerceIn(0f, 1f)
+                    if (pp <= 0f) continue
+                    val sx = x * cell + cell / 2f + (seed - 0.5f) * cell * 1.6f
+                    val sy = (y * cell + cell / 2f) - pp * cell * (1.2f + seed)
+                    val sr = cell * 0.09f * (1f - pp) * (0.6f + seed)
+                    if (sr > 0.5f) {
+                        drawCircle(
+                            Color(0xFFFFF3C4).copy(alpha = (1f - pp)),
+                            radius = sr,
+                            center = Offset(sx, sy)
+                        )
+                    }
+                }
+            }
+        }
         }
         // v3.1: the particle layer, on top of everything
         particles.draw(this)
