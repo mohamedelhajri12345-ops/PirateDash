@@ -82,9 +82,9 @@ import com.mohamedelhajri.starpuzzle.core.LevelCatalog
 private val CandyPink = Color(0xFFFF6EC7)
 private val CandyViolet = Color(0xFF8B5CF6)
 private val CandyCyan = Color(0xFF22D3EE)
-private val MenuGold = Color(0xFFFFD54F)
-private val MenuGoldSoft = Color(0xFFFFE082)
-private val MenuInk = Color(0xFF2A1B5E)
+private val MenuGold = Color(0xFFE9C46A)
+private val MenuGoldSoft = Color(0xFFF4D9A6)
+private val MenuInk = Color(0xFF3B2D1A)
 private val White = Color(0xFFFFFFFF)
 private val BlockMint = Color(0xFF4DD9A8)
 private val BlockCoral = Color(0xFFFF7A6B)
@@ -168,7 +168,7 @@ private fun HeroPlay(onClick: () -> Unit) {
             .clip(shape)
             .background(
                 Brush.verticalGradient(
-                    listOf(MenuGoldSoft, MenuGold, Color(0xFFF9A825))
+                    listOf(MenuGoldSoft, MenuGold, Color(0xFFC8963E))
                 )
             )
             .border(2.5.dp, White.copy(alpha = 0.65f), shape)
@@ -188,7 +188,7 @@ private fun HeroPlay(onClick: () -> Unit) {
         )
         Text(
             "PLAY",
-            color = Color(0xFF5D3A00),
+            color = Color(0xFF3B2D1A),
             fontWeight = FontWeight.Black,
             fontSize = 34.sp,
             letterSpacing = 3.sp
@@ -355,7 +355,7 @@ fun MainMenuScreen(
                             if (d == 7) "★" else "$d",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
-                            color = if (d <= streakDay) Color(0xFF5D3A00)
+                            color = if (d <= streakDay) Color(0xFF3B2D1A)
                             else White.copy(alpha = 0.85f)
                         )
                     }
@@ -405,7 +405,7 @@ fun MainMenuScreen(
                             Text(
                                 "$value / ${m.target}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (done) Color(0xFFFFF176)
+                                color = if (done) Color(0xFFF4D9A6)
                                 else White.copy(alpha = 0.75f)
                             )
                         }
@@ -422,7 +422,7 @@ fun MainMenuScreen(
                             ) {
                                 Text(
                                     "+${m.reward} ●",
-                                    color = if (done) Color(0xFFFFF176)
+                                    color = if (done) Color(0xFFF4D9A6)
                                     else White.copy(alpha = 0.4f)
                                 )
                             }
@@ -587,7 +587,7 @@ private fun SettingsDialog(
                     onClick = onDismiss,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MenuGold,
-                        contentColor = Color(0xFF5D3A00)
+                        contentColor = Color(0xFF3B2D1A)
                     )
                 ) { Text("OK") }
             }
