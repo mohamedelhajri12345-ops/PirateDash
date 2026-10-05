@@ -137,95 +137,6 @@ private fun CandyBlock(color: Color, phase: Float, sizeDp: Int) {
     }
 }
 
-/** The mascot: a glossy smiling star — the hero of the menu. */
-@Composable
-private fun StarMascot() {
-    val transition = rememberInfiniteTransition(label = "mascot")
-    val t by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(2600, easing = LinearEasing)),
-        label = "mt"
-    )
-    Box(
-        modifier = Modifier
-            .size(170.dp)
-            .graphicsLayer {
-                translationY = kotlin.math.sin(t * 6.283f) * 10f
-                rotationZ = kotlin.math.sin(t * 6.283f) * 2.5f
-            }
-    ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val c = center
-            val outer = size.minDimension * 0.46f
-            val inner = outer * 0.5f
-            // glow halo
-            drawCircle(
-                Brush.radialGradient(
-                    listOf(MenuGoldSoft.copy(alpha = 0.55f), Color.Transparent),
-                    center = c, radius = outer * 1.9f
-                ),
-                radius = outer * 1.9f, center = c
-            )
-            // star body
-            val star = Path()
-            var ang = -Math.PI / 2.0
-            for (i in 0 until 10) {
-                val r = if (i % 2 == 0) outer else inner
-                val x = c.x + (r * kotlin.math.cos(ang)).toFloat()
-                val y = c.y + (r * kotlin.math.sin(ang)).toFloat()
-                if (i == 0) star.moveTo(x, y) else star.lineTo(x, y)
-                ang += Math.PI / 5.0
-            }
-            star.close()
-            val bodyBrush = Brush.radialGradient(
-                listOf(
-                    Color(0xFFFFF176),
-                    MenuGoldSoft,
-                    Color(0xFFF9A825)
-                ),
-                center = Offset(c.x - outer * 0.25f, c.y - outer * 0.3f),
-                radius = outer * 2.1f
-            )
-            drawPath(star, bodyBrush)
-            // glossy crescent highlight top-left
-            val hi = Path().apply {
-                addOval(
-                    androidx.compose.ui.geometry.Rect(
-                        Offset(c.x - outer * 0.52f, c.y - outer * 0.62f),
-                        Size(outer * 0.62f, outer * 0.42f)
-                    )
-                )
-            }
-            clipPath(star) {
-                drawPath(hi, White.copy(alpha = 0.30f))
-            }
-            // the face: eyes + smile + blush
-            val eyeY = c.y - outer * 0.10f
-            val eyeDX = outer * 0.26f
-            for (s in intArrayOf(-1, 1)) {
-                drawCircle(MenuInk, radius = outer * 0.085f,
-                    center = Offset(c.x + s * eyeDX, eyeY))
-                drawCircle(White, radius = outer * 0.03f,
-                    center = Offset(c.x + s * eyeDX + outer * 0.03f, eyeY - outer * 0.03f))
-            }
-            drawArc(
-                color = MenuInk,
-                startAngle = -30f, sweepAngle = 140f, useCenter = false,
-                topLeft = Offset(c.x - outer * 0.24f, eyeY + outer * 0.10f),
-                size = Size(outer * 0.48f, outer * 0.40f),
-                style = Stroke(width = outer * 0.05f, cap = StrokeCap.Round)
-            )
-            for (s in intArrayOf(-1, 1)) {
-                drawCircle(
-                    Color(0xFFFF8A95).copy(alpha = 0.55f),
-                    radius = outer * 0.07f,
-                    center = Offset(c.x + s * (eyeDX + outer * 0.22f), eyeY + outer * 0.08f)
-                )
-            }
-        }
-    }
-}
 
 /** A translucent candy-glass chip. */
 @Composable
@@ -333,7 +244,6 @@ fun MainMenuScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         CosmosBackdrop()
-        FloatingArt()
 
         Column(
             modifier = Modifier
@@ -382,15 +292,6 @@ fun MainMenuScreen(
                 color = MenuGoldSoft,
                 fontWeight = FontWeight.Black
             )
-
-            // ── mascot stage: the smiling star + floating candy blocks ──
-            Box(contentAlignment = Alignment.Center) {
-                CandyBlock(BlockMint, 0f, 34)
-                Box(Modifier.offset(x = (-96).dp, y = 26.dp)) { CandyBlock(BlockCoral, 1.7f, 30) }
-                Box(Modifier.offset(x = 96.dp, y = 26.dp)) { CandyBlock(BlockLemon, 3.4f, 30) }
-                Box(Modifier.offset(x = (-64).dp, y = (-46).dp)) { CandyBlock(BlockSky, 5.1f, 26) }
-                StarMascot()
-            }
 
             Spacer(Modifier.height(18.dp))
             HeroPlay {

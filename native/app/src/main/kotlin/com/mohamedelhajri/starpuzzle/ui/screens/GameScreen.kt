@@ -850,7 +850,7 @@ private fun BoardCanvas(
         val radius = CornerRadius(cell * 0.22f)
 
         drawRoundRect(
-            color = Color(0xFF16204A),
+            color = Color(0xFF292929),
             cornerRadius = CornerRadius(cell * 0.5f),
             size = Size(size.width, size.height)
         )

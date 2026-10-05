@@ -16,9 +16,10 @@ object SkinState {
 }
 
 val PieceSkins = listOf(
+    // Ported 1:1 from the reference game's Dark theme cell palette
     PieceSkin("STARLIGHT", listOf(
-        Color(0xFFEF5350), Color(0xFFFFA726), Color(0xFFFFEE58),
-        Color(0xFF66BB6A), Color(0xFF42A5F5), Color(0xFF7E57C2), Color(0xFFEC407A), Color(0xFF26C6DA), Color(0xFFAB47BC)
+        Color(0xFF7931BF), Color(0xFF4C87AE), Color(0xFF3AA853),
+        Color(0xFF1E984D), Color(0xFF2E749B), Color(0xFFDB5500), Color(0xFFD88109), Color(0xFFD9294D), Color(0xFFAC342B)
     )),
     PieceSkin("ROSE", listOf(
         Color(0xFFEF9A9A), Color(0xFFF48FB1), Color(0xFFEC407A),

@@ -115,7 +115,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.piece_drop,
             baseVolume = 0.85f,
             basePitch = 1.00f,
-            pitchJitter = 0.04f,
+            pitchJitter = 0f,
             maxPolyphony = 3,
             eventClass = SoundClass.BOARD_EFFECT,
             duckMusic = false
@@ -124,7 +124,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.invalid_drop,
             baseVolume = 0.70f,
             basePitch = 0.95f,
-            pitchJitter = 0.03f,
+            pitchJitter = 0f,
             maxPolyphony = 2,
             eventClass = SoundClass.BOARD_EFFECT,
             duckMusic = false
@@ -133,7 +133,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.line_clear,
             baseVolume = 0.90f,
             basePitch = 1.00f,
-            pitchJitter = 0.02f,
+            pitchJitter = 0f,
             maxPolyphony = 3,
             eventClass = SoundClass.BOARD_EFFECT,
             duckMusic = false
@@ -142,7 +142,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.combo,
             baseVolume = 0.95f,
             basePitch = 1.02f,
-            pitchJitter = 0.02f,
+            pitchJitter = 0f,
             maxPolyphony = 2,
             eventClass = SoundClass.POWERUP_SPECIAL,
             duckMusic = true
@@ -151,7 +151,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.bomb,
             baseVolume = 0.95f,
             basePitch = 0.98f,
-            pitchJitter = 0.02f,
+            pitchJitter = 0f,
             maxPolyphony = 2,
             eventClass = SoundClass.POWERUP_SPECIAL,
             duckMusic = true
@@ -160,7 +160,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.star_piece,
             baseVolume = 0.90f,
             basePitch = 1.05f,
-            pitchJitter = 0.02f,
+            pitchJitter = 0f,
             maxPolyphony = 2,
             eventClass = SoundClass.POWERUP_SPECIAL,
             duckMusic = true
@@ -169,7 +169,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.game_over,
             baseVolume = 1.00f,
             basePitch = 1.00f,
-            pitchJitter = 0.00f,
+            pitchJitter = 0f,
             maxPolyphony = 1,
             eventClass = SoundClass.STING_REWARD,
             duckMusic = true
@@ -178,7 +178,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.coin,
             baseVolume = 0.80f,
             basePitch = 1.05f,
-            pitchJitter = 0.04f,
+            pitchJitter = 0f,
             maxPolyphony = 3,
             eventClass = SoundClass.STING_REWARD,
             duckMusic = false
@@ -187,7 +187,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.confirm,
             baseVolume = 0.80f,
             basePitch = 1.05f,
-            pitchJitter = 0.02f,
+            pitchJitter = 0f,
             maxPolyphony = 2,
             eventClass = SoundClass.UI_TAP,
             duckMusic = false
@@ -196,7 +196,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.back,
             baseVolume = 0.70f,
             basePitch = 1.00f,
-            pitchJitter = 0.02f,
+            pitchJitter = 0f,
             maxPolyphony = 2,
             eventClass = SoundClass.UI_TAP,
             duckMusic = false
@@ -205,7 +205,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.level_start,
             baseVolume = 0.85f,
             basePitch = 1.00f,
-            pitchJitter = 0.02f,
+            pitchJitter = 0f,
             maxPolyphony = 1,
             eventClass = SoundClass.STING_REWARD,
             duckMusic = true
@@ -214,7 +214,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.level_complete,
             baseVolume = 0.95f,
             basePitch = 1.00f,
-            pitchJitter = 0.01f,
+            pitchJitter = 0f,
             maxPolyphony = 1,
             eventClass = SoundClass.STING_REWARD,
             duckMusic = true
@@ -223,7 +223,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.high_score,
             baseVolume = 1.00f,
             basePitch = 1.08f,
-            pitchJitter = 0.01f,
+            pitchJitter = 0f,
             maxPolyphony = 1,
             eventClass = SoundClass.STING_REWARD,
             duckMusic = true
@@ -232,7 +232,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.combo,
             baseVolume = 0.95f,
             basePitch = 1.00f,
-            pitchJitter = 0.02f,
+            pitchJitter = 0f,
             maxPolyphony = 2,
             eventClass = SoundClass.POWERUP_SPECIAL,
             duckMusic = true
@@ -241,7 +241,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.combo,
             baseVolume = 1.00f,
             basePitch = 1.12f,
-            pitchJitter = 0.02f,
+            pitchJitter = 0f,
             maxPolyphony = 2,
             eventClass = SoundClass.POWERUP_SPECIAL,
             duckMusic = true
@@ -250,7 +250,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.combo,
             baseVolume = 1.00f,
             basePitch = 1.25f,
-            pitchJitter = 0.02f,
+            pitchJitter = 0f,
             maxPolyphony = 2,
             eventClass = SoundClass.POWERUP_SPECIAL,
             duckMusic = true
@@ -259,7 +259,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.pickup,
             baseVolume = 0.55f,
             basePitch = 1.10f,
-            pitchJitter = 0.05f,
+            pitchJitter = 0f,
             maxPolyphony = 1,
             eventClass = SoundClass.UI_TAP,
             duckMusic = false
@@ -268,7 +268,7 @@ class SoundManager(private val context: Context) {
             resId = R.raw.drag,
             baseVolume = 0.40f,
             basePitch = 1.00f,
-            pitchJitter = 0.06f,
+            pitchJitter = 0f,
             maxPolyphony = 1,
             eventClass = SoundClass.UI_TAP,
             duckMusic = false
