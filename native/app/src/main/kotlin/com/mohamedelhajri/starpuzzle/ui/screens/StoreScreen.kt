@@ -131,6 +131,14 @@ fun StoreScreen(
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
+            if (GameProgress.STORE_TEST_FREE) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "TESTING MODE — ALL ITEMS FREE",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF66BB6A)
+                )
+            }
             Spacer(Modifier.height(18.dp))
 
             // ── boosters: 2×2 grid of cards ──
@@ -218,7 +226,7 @@ fun StoreScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            if (isOwned) skin.name else "$price ◆",
+                            if (isOwned) skin.name else if (GameProgress.STORE_TEST_FREE) "FREE" else "$price ◆",
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isSelected) StoreGold
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -286,7 +294,7 @@ fun StoreScreen(
                         )
                         Text(
                             if (isOwned) (if (isSelected) "ACTIVE" else "OWNED")
-                            else "${skin.price} ◆",
+                            else if (GameProgress.STORE_TEST_FREE) "FREE" else "${skin.price} ◆",
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isSelected) StoreGold
                             else if (isOwned) Color(0xFF66BB6A)
@@ -384,9 +392,11 @@ private fun BoosterCard(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    "$price",
+                    if (GameProgress.STORE_TEST_FREE) "FREE" else "$price",
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (affordable) StoreGold else Color(0xFF9FA8CC).copy(alpha = 0.6f)
+                    color = if (GameProgress.STORE_TEST_FREE) Color(0xFF66BB6A)
+                    else if (affordable) StoreGold
+                    else Color(0xFF9FA8CC).copy(alpha = 0.6f)
                 )
             }
         }

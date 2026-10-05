@@ -249,11 +249,22 @@ fun GameScreen(
             return
         }
         val piece = liveSession.tray[dragIndex]
-        val event = liveSession.placePiece(
-            dragIndex,
-            ((dragPos.x - boardPx * (piece.cellCols * 0.5f) - boardOrigin.x) / boardPx).toInt(),
-            ((dragPos.y - boardPx * (piece.cellRows * 0.5f) - boardPx * 1.2f - boardOrigin.y) / boardPx).toInt()
-        )
+        var gx = ((dragPos.x - boardPx * (piece.cellCols * 0.5f) - boardOrigin.x) / boardPx).toInt()
+        var gy = ((dragPos.y - boardPx * (piece.cellRows * 0.5f) - boardPx * 1.2f - boardOrigin.y) / boardPx).toInt()
+        // v7 touch assist: if the exact cell rejects the piece, snap to the
+        // nearest valid cell within one grid step (forgiving Block Blast feel)
+        var event = liveSession.placePiece(dragIndex, gx, gy)
+        if (event == null) {
+            val snapOffsets = listOf(1 to 0, -1 to 0, 0 to 1, 0 to -1)
+            for ((ox, oy) in snapOffsets) {
+                val tx = gx + ox
+                val ty = gy + oy
+                if (liveSession.board.canPut(piece, tx, ty)) {
+                    event = liveSession.placePiece(dragIndex, tx, ty)
+                    if (event != null) break
+                }
+            }
+        }
         if (event == null) {
             sound.play(SoundManager.Sfx.INVALID)
         } else {
@@ -581,32 +592,89 @@ fun GameScreen(
             }
 
             // ── Booster bar (store inventory — the approved store items) ──
+            // v7: booster counts are game-wide (3 free of each kind, never
+            // refilled per level). Running out mid-level now buys one
+            // instantly with coins — and the coin balance is always visible.
             val inv = progress.boosters()
             val playing = liveSession.status == GameSession.Status.PLAYING
+            // auto-buy helper: tap an empty chip -> purchase one with coins
+            fun obtainOrSelect(kind: GameProgress.BoosterKind, select: () -> Unit) {
+                val count = when (kind) {
+                    GameProgress.BoosterKind.BOMB -> inv.bomb
+                    GameProgress.BoosterKind.LIGHTNING -> inv.lightning
+                    GameProgress.BoosterKind.STAR -> inv.star
+                    GameProgress.BoosterKind.MOVE -> inv.move
+                }
+                if (count > 0) { select(); return }
+                if (progress.buyBooster(kind)) {
+                    sound.play(SoundManager.Sfx.COIN)
+                    select()
+                    frame++
+                } else {
+                    sound.play(SoundManager.Sfx.INVALID)
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 BoosterChip("BOMB", inv.bomb, boostTarget == GameProgress.BoosterKind.BOMB, {
-                    boostTarget = if (boostTarget == GameProgress.BoosterKind.BOMB) null
-                    else GameProgress.BoosterKind.BOMB
-                }, enabled = playing && inv.bomb > 0, sound)
+                    obtainOrSelect(GameProgress.BoosterKind.BOMB) {
+                        boostTarget = if (boostTarget == GameProgress.BoosterKind.BOMB) null
+                        else GameProgress.BoosterKind.BOMB
+                    }
+                }, enabled = playing, sound)
                 BoosterChip("ZAP", inv.lightning, boostTarget == GameProgress.BoosterKind.LIGHTNING, {
-                    boostTarget = if (boostTarget == GameProgress.BoosterKind.LIGHTNING) null
-                    else GameProgress.BoosterKind.LIGHTNING
-                }, enabled = playing && inv.lightning > 0, sound)
+                    obtainOrSelect(GameProgress.BoosterKind.LIGHTNING) {
+                        boostTarget = if (boostTarget == GameProgress.BoosterKind.LIGHTNING) null
+                        else GameProgress.BoosterKind.LIGHTNING
+                    }
+                }, enabled = playing, sound)
                 BoosterChip("STAR", inv.star, boostTarget == GameProgress.BoosterKind.STAR, {
-                    boostTarget = if (boostTarget == GameProgress.BoosterKind.STAR) null
-                    else GameProgress.BoosterKind.STAR
-                }, enabled = playing && inv.star > 0, sound)
+                    obtainOrSelect(GameProgress.BoosterKind.STAR) {
+                        boostTarget = if (boostTarget == GameProgress.BoosterKind.STAR) null
+                        else GameProgress.BoosterKind.STAR
+                    }
+                }, enabled = playing, sound)
                 BoosterChip("MOVE", inv.move, false, {
-                    if (playing && liveSession.canTakeBack() &&
-                        progress.spendBooster(GameProgress.BoosterKind.MOVE)) {
-                        liveSession.takeBackLast()
-                        sound.play(SoundManager.Sfx.PLACE)
-                        frame++
+                    if (liveSession.canTakeBack()) {
+                        if (inv.move > 0 || progress.buyBooster(GameProgress.BoosterKind.MOVE)) {
+                            progress.spendBooster(GameProgress.BoosterKind.MOVE)
+                            liveSession.takeBackLast()
+                            sound.play(SoundManager.Sfx.PLACE)
+                            frame++
+                        } else sound.play(SoundManager.Sfx.INVALID)
+                    } else if (inv.move <= 0) {
+                        // allow buying MOVE stock even before a take-back exists
+                        if (progress.buyBooster(GameProgress.BoosterKind.MOVE)) {
+                            sound.play(SoundManager.Sfx.COIN); frame++
+                        } else sound.play(SoundManager.Sfx.INVALID)
                     } else sound.play(SoundManager.Sfx.INVALID)
-                }, enabled = playing && inv.move > 0, sound)
+                }, enabled = playing, sound)
+                // ── always-visible coin balance the owner asked for ──
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .border(
+                            1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                            RoundedCornerShape(10.dp)
+                        )
+                        .background(Color(0x14101830), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.gem_coin),
+                        contentDescription = "Coins",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        "${progress.coins}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = GemGold
+                    )
+                }
             }
             if (boostTarget != null) {
                 Spacer(Modifier.height(4.dp))

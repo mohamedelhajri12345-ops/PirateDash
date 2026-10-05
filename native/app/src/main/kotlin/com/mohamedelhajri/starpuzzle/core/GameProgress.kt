@@ -177,19 +177,24 @@ class GameProgress(private val store: SaveStore) {
     // ── Store: boosters + skins, in-game currency ONLY (no real money,
     // no stars — approved spec) ─────────────────────────────────────
 
+    // ── TESTING MODE (temporary): while the owner finalises QA every store
+    // item is FREE. Set to false before commercial release to restore the
+    // coin economy. TODO(owner): flip to false for production builds.
+    val STORE_TEST_FREE = true
+
     enum class BoosterKind { BOMB, LIGHTNING, STAR, MOVE }
 
     data class BoosterCounts(val bomb: Int, val lightning: Int, val star: Int, val move: Int)
 
     /** Prices in coins — one source of truth for the store screen. */
-    fun boosterPrice(kind: BoosterKind): Int = when (kind) {
+    fun boosterPrice(kind: BoosterKind): Int = if (STORE_TEST_FREE) 0 else when (kind) {
         BoosterKind.BOMB -> 150
         BoosterKind.LIGHTNING -> 150
         BoosterKind.STAR -> 200
         BoosterKind.MOVE -> 100
     }
 
-    fun skinPrice(skinId: Int): Int = if (skinId <= 0) 0 else (200 + skinId * 10)
+    fun skinPrice(skinId: Int): Int = if (STORE_TEST_FREE || skinId <= 0) 0 else (200 + skinId * 10)
 
     fun boosters(): BoosterCounts {
         ensureStarterKit()
@@ -249,7 +254,7 @@ class GameProgress(private val store: SaveStore) {
     /** Buy with an explicit price (material skins carry their own catalog price). */
     fun buySkinAt(skinId: Int, price: Int): Boolean {
         if (skinOwned(skinId)) return true
-        if (!spendCoins(price)) return false
+        if (!spendCoins(if (STORE_TEST_FREE) 0 else price)) return false
         store.saveOwnedSkins(store.loadOwnedSkins().let {
             if (it.isBlank()) "$skinId" else "$it,$skinId"
         })
@@ -261,6 +266,9 @@ class GameProgress(private val store: SaveStore) {
         val raw = store.loadOwnedSkins()
         if (raw.isNotBlank()) return
         store.saveOwnedSkins("0")
-        saveBoosters(BoosterCounts(bomb = 1, lightning = 1, star = 1, move = 3))
+        // Owner spec (QA): exactly 3 free uses of every booster for the
+        // ENTIRE game, never refilled per level. More must be bought with
+        // coins (free while STORE_TEST_FREE).
+        saveBoosters(BoosterCounts(bomb = 3, lightning = 3, star = 3, move = 3))
     }
 }
