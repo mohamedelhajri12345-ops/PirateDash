@@ -1,5 +1,6 @@
 package com.mohamedelhajri.starpuzzle.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -93,11 +95,21 @@ fun StoreScreen(
                         .background(StoreGold.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
                         .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
-                    Text(
-                        "● $coins",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = StoreGold
-                    )
+                    androidx.compose.foundation.layout.Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.gem_coin),
+                            contentDescription = "Coins",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "$coins",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = StoreGold
+                        )
+                    }
                 }
                 Spacer(Modifier.weight(1f))
                 OutlinedButton(

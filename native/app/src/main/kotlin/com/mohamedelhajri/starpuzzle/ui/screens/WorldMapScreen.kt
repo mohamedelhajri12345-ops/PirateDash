@@ -48,7 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mohamedelhajri.starpuzzle.core.GameProgress
 import com.mohamedelhajri.starpuzzle.core.LevelCatalog
-import com.mohamedelhajri.starpuzzle.ui.worlds.WorldBackdrop
+import com.mohamedelhajri.starpuzzle.ui.screens.CosmosBackdrop
 
 /**
  * World map: an adventure overview. Pick a world, see its 100 level nodes
@@ -65,8 +65,7 @@ fun WorldMapScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Phase B: the selected world's identity behind its map
-        WorldBackdrop(
-            world = selectedWorld,
+        CosmosBackdrop(
             modifier = Modifier.fillMaxSize()
         )
         Column(

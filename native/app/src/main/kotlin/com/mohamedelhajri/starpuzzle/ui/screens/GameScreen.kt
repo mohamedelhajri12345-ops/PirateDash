@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
@@ -48,6 +49,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -66,6 +68,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mohamedelhajri.starpuzzle.R
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.FeelState
 import com.mohamedelhajri.starpuzzle.core.GameProgress
@@ -82,7 +85,7 @@ import com.mohamedelhajri.starpuzzle.ui.theme.MaterialSkinCatalog
 import com.mohamedelhajri.starpuzzle.ui.theme.drawMaterial
 import com.mohamedelhajri.starpuzzle.engine.ParticleEngine
 import com.mohamedelhajri.starpuzzle.engine.ParticleEvent
-import com.mohamedelhajri.starpuzzle.ui.worlds.WorldBackdrop
+import com.mohamedelhajri.starpuzzle.ui.screens.CosmosBackdrop
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import com.mohamedelhajri.starpuzzle.ui.theme.SpecialBombColor
@@ -157,6 +160,8 @@ fun GameScreen(
     // clear animation — keyed by levelId: transient state must NEVER
     // leak from one level into the next (the v2.4.0 dialog bug)
     var clearAnimCells by remember(levelId) { mutableStateOf(listOf<Pair<Int, Int>>()) }
+    // v6: the clear burst now carries the placed piece's real colour
+    var clearAnimColor by remember(levelId) { mutableStateOf(Color(0xFFFFD54F)) }
     val clearProgress = remember(levelId) { Animatable(1f) }
 
     // combo popup
@@ -259,6 +264,7 @@ fun GameScreen(
             sound.play(SoundManager.Sfx.PLACE)
             if (event.clearedCells.isNotEmpty()) {
                 clearAnimCells = event.clearedCells
+                clearAnimColor = pieceColor(piece.colorIndex)
                 scope.launch {
                     clearProgress.snapTo(0f)
                     clearProgress.animateTo(1f, tween(320))
@@ -369,6 +375,10 @@ fun GameScreen(
                         if (cells.isNotEmpty()) {
                             if (cells.size > 1 || kind == GameProgress.BoosterKind.BOMB) {
                                 clearAnimCells = cells
+                                clearAnimColor = when (kind) {
+                                    GameProgress.BoosterKind.LIGHTNING -> Color(0xFF40C4FF)
+                                    else -> Color(0xFFFFD54F)
+                                }
                                 scope.launch {
                                     clearProgress.snapTo(0f)
                                     clearProgress.animateTo(1f, tween(320))
@@ -443,8 +453,7 @@ fun GameScreen(
             }
     ) {
         // Phase B: the level's world identity animates behind the board
-        WorldBackdrop(
-            world = level.world,
+        CosmosBackdrop(
             modifier = Modifier.fillMaxSize()
         )
 
@@ -470,6 +479,27 @@ fun GameScreen(
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(Modifier.weight(1f))
+                // v6: real gem artwork for the coin balance
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(Color(0xCC1F1B3A))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.gem_coin),
+                        contentDescription = "Coins",
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        "${progress.coins}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color(0xFFFFE082)
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         "${liveSession.score}",
@@ -539,6 +569,7 @@ fun GameScreen(
                     session = liveSession,
                     particles = particles,
                     clearAnimCells = clearAnimCells,
+                    clearAnimColor = clearAnimColor,
                     clearProgress = clearProgress.value,
                     dragIndex = dragIndex,
                     dragValid = dragValid,
@@ -734,6 +765,7 @@ private fun BoardCanvas(
     session: GameSession,
     particles: ParticleEngine,
     clearAnimCells: List<Pair<Int, Int>>,
+    clearAnimColor: Color,
     clearProgress: Float,
     dragIndex: Int,
     dragValid: Boolean,
@@ -837,18 +869,46 @@ private fun BoardCanvas(
                 }
             }
 
-        // clear animation
+        // v6 clear burst: coloured glow + expanding pop + hot core
         if (clearProgress < 1f) {
-            val s = 1f - clearProgress
+            val p = clearProgress
             for ((x, y) in clearAnimCells) {
-                val cellPx = (cell - gap) * s
+                val cx = x * cell + cell / 2f
+                val cy = y * cell + cell / 2f
+                // 1. expanding glow halo in the piece's real colour
+                val halo = cell * (0.55f + 1.15f * p)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            clearAnimColor.copy(alpha = 0.60f * (1f - p)),
+                            clearAnimColor.copy(alpha = 0f)
+                        ),
+                        center = Offset(cx, cy),
+                        radius = halo
+                    ),
+                    radius = halo,
+                    center = Offset(cx, cy)
+                )
+                // 2. the cell itself pops BIGGER while fading (explosion feel)
+                val cellPx = (cell - gap) * (1f + 0.38f * p)
                 val off = (cell - cellPx) / 2f
                 drawRoundRect(
-                    color = Color.White.copy(alpha = 0.9f * (1f - clearProgress)),
+                    color = clearAnimColor.copy(alpha = 0.92f * (1f - p)),
                     topLeft = Offset(x * cell + off, y * cell + off),
                     size = Size(cellPx, cellPx),
                     cornerRadius = CornerRadius(cellPx * 0.22f)
                 )
+                // 3. white-hot core collapsing to nothing
+                val corePx = (cell - gap) * (1f - p) * 0.62f
+                if (corePx > 0f) {
+                    val coreOff = (cell - corePx) / 2f
+                    drawRoundRect(
+                        color = Color.White.copy(alpha = 0.85f * (1f - p)),
+                        topLeft = Offset(x * cell + coreOff, y * cell + coreOff),
+                        size = Size(corePx, corePx),
+                        cornerRadius = CornerRadius(corePx * 0.22f)
+                    )
+                }
             }
         }
         // v3.1: the particle layer, on top of everything
