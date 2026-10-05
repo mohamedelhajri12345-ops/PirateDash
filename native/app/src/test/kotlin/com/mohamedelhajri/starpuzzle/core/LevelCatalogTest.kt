@@ -3,10 +3,24 @@ package com.mohamedelhajri.starpuzzle.core
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 
 /** Level catalog tests: 1000 levels, determinism, sane targets, star gates. */
 class LevelCatalogTest {
+
+    // Store economy tests run against the REAL paid prices: the QA
+    // "everything free" flag is switched off for the test scope and
+    // restored after every case (it is a runtime flag by design).
+    @Before fun paidEconomyForTests() {
+        GameProgress.STORE_TEST_FREE = false
+    }
+
+    @After fun restoreTestFreeFlag() {
+        GameProgress.STORE_TEST_FREE = true
+    }
+
 
     @Test
     fun totalLevelCounts() {
@@ -265,7 +279,7 @@ class LevelCatalogTest {
         val owned = progress.ownedSkins()
         assertTrue(owned.contains(0))
         val inv = progress.boosters()
-        assertTrue(inv.bomb == 1 && inv.lightning == 1 && inv.star == 1 && inv.move == 3)
+        assertTrue(inv.bomb == 3 && inv.lightning == 3 && inv.star == 3 && inv.move == 3)
         // second call must NOT re-grant
         progress.ownedSkins()
         assertTrue(progress.boosters().move == 3)
@@ -278,9 +292,11 @@ class LevelCatalogTest {
         progress.ownedSkins() // trigger starter kit
         f.saveCoins(400)
         assertTrue(progress.buyBooster(GameProgress.BoosterKind.BOMB))
-        assertTrue(progress.boosters().bomb == 2) // starter 1 + bought 1
+        assertTrue(progress.boosters().bomb == 4) // starter 3 + bought 1
         assertTrue(progress.coins == 250) // 400 - 150
         // spending drains to zero and then refuses
+        assertTrue(progress.spendBooster(GameProgress.BoosterKind.BOMB))
+        assertTrue(progress.spendBooster(GameProgress.BoosterKind.BOMB))
         assertTrue(progress.spendBooster(GameProgress.BoosterKind.BOMB))
         assertTrue(progress.spendBooster(GameProgress.BoosterKind.BOMB))
         assertFalse(progress.spendBooster(GameProgress.BoosterKind.BOMB))

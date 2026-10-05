@@ -41,7 +41,7 @@ class GameProgress(private val store: SaveStore) {
         // ── TESTING MODE (temporary): while the owner finalises QA every
         // store item is FREE. Set to false before commercial release to
         // restore the coin economy. TODO(owner): flip to false for prod.
-        const val STORE_TEST_FREE = true
+        var STORE_TEST_FREE = true
     }
 
 
