@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Color
  * Replaces the old animated cosmos (owner verdict: animated backgrounds
  * and drawn stars looked cheap). Same signature, zero per-frame work.
  */
+@Composable
 fun CosmosBackdrop(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
