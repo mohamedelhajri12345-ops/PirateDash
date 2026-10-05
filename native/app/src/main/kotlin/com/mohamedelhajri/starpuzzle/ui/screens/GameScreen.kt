@@ -672,7 +672,7 @@ fun GameScreen(
                     Text(
                         "${progress.coins}",
                         style = MaterialTheme.typography.labelLarge,
-                        color = GemGold
+                        color = Color(0xFFFFD54F)
                     )
                 }
             }

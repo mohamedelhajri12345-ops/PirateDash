@@ -37,6 +37,14 @@ interface SaveStore {
 /** Progress helper over a SaveStore. */
 class GameProgress(private val store: SaveStore) {
 
+    companion object {
+        // ── TESTING MODE (temporary): while the owner finalises QA every
+        // store item is FREE. Set to false before commercial release to
+        // restore the coin economy. TODO(owner): flip to false for prod.
+        const val STORE_TEST_FREE = true
+    }
+
+
     val stars: MutableMap<Int, Int> get() = store.loadStars()
     val coins: Int get() = store.loadCoins()
 
@@ -177,10 +185,6 @@ class GameProgress(private val store: SaveStore) {
     // ── Store: boosters + skins, in-game currency ONLY (no real money,
     // no stars — approved spec) ─────────────────────────────────────
 
-    // ── TESTING MODE (temporary): while the owner finalises QA every store
-    // item is FREE. Set to false before commercial release to restore the
-    // coin economy. TODO(owner): flip to false for production builds.
-    val STORE_TEST_FREE = true
 
     enum class BoosterKind { BOMB, LIGHTNING, STAR, MOVE }
 
