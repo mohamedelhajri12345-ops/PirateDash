@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -132,6 +134,25 @@ fun GameScreen(
     var dragValid by remember { mutableStateOf(false) }
     var dragTargetX by remember { mutableStateOf(-1) }
     var dragTargetY by remember { mutableStateOf(-1) }
+
+    // snappy pick-up pop: the instant the finger grabs a piece it pops
+    // bigger with a bouncy spring (TikTok-fast feel), then settles while held
+    val pickupScale = remember { Animatable(1f) }
+    LaunchedEffect(dragIndex) {
+        if (dragIndex >= 0) {
+            pickupScale.snapTo(1f)
+            pickupScale.animateTo(
+                1.18f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 1400f)
+            )
+            pickupScale.animateTo(
+                1.08f,
+                animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 500f)
+            )
+        } else {
+            pickupScale.animateTo(1f, animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = 900f))
+        }
+    }
 
     // clear animation — keyed by levelId: transient state must NEVER
     // leak from one level into the next (the v2.4.0 dialog bug)
@@ -617,21 +638,26 @@ fun GameScreen(
         }
 
         // ── Dragged piece overlay (root coords) ──
-        if (dragIndex >= 0) {
+        // pickupScale pops the piece bigger the instant it's grabbed (snappy
+        // "TikTok-fast" feedback), then eases to a slightly-enlarged held size.
+        if (dragIndex >= 0 || pickupScale.value > 1.001f) {
             val heldPiece = liveSession.tray.getOrNull(dragIndex)
             if (heldPiece != null) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
-                    val px = dragPos.x - boardPx * heldPiece.cellCols * 0.5f
-                    val py = dragPos.y - boardPx * heldPiece.cellRows * 0.5f - boardPx * 1.2f
+                    val liveBoardPx = boardPx * pickupScale.value
+                    val cx = dragPos.x
+                    val cy = dragPos.y - boardPx * 1.2f
+                    val px = cx - liveBoardPx * heldPiece.cellCols * 0.5f
+                    val py = cy - liveBoardPx * heldPiece.cellRows * 0.5f
                     drawCircle(
                         color = Color(0xFFFFD54F).copy(alpha = 0.13f),
-                        radius = boardPx * 1.1f,
+                        radius = liveBoardPx * 1.1f,
                         center = Offset(
-                            px + heldPiece.cellCols * boardPx * 0.5f,
-                            py + heldPiece.cellRows * boardPx * 0.5f
+                            px + heldPiece.cellCols * liveBoardPx * 0.5f,
+                            py + heldPiece.cellRows * liveBoardPx * 0.5f
                         )
                     )
-                    drawPiece(heldPiece, Offset(px, py), boardPx, alpha = 0.95f)
+                    drawPiece(heldPiece, Offset(px, py), liveBoardPx, alpha = 0.95f)
                 }
             }
         }
