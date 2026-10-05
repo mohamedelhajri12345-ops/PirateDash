@@ -65,6 +65,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.mohamedelhajri.starpuzzle.R
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.ui.screens.CosmosBackdrop
 import com.mohamedelhajri.starpuzzle.core.DailyMissions
@@ -330,6 +333,7 @@ fun MainMenuScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         CosmosBackdrop()
+        FloatingArt()
 
         Column(
             modifier = Modifier
@@ -713,4 +717,76 @@ private fun SettingRow(
             )
         )
     }
+}
+
+
+// ── Phase 2: the approved artwork floats gently in the menu ──
+// Real elements (candy bomb, violet + amber gems, CC0 star) drifting
+// on the cosmos sky like the reference video's player atmosphere.
+@Composable
+private fun androidx.compose.foundation.layout.BoxScope.FloatingArt() {
+    val transition = rememberInfiniteTransition(label = "floatArt")
+    val t by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(7000, easing = androidx.compose.animation.core.LinearEasing),
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+        ),
+        label = "floatArtT"
+    )
+    val bob1 = kotlin.math.sin(t * Math.PI.toFloat() * 2f) * 14f
+    val bob2 = kotlin.math.sin(t * Math.PI.toFloat() * 2f + 1.7f) * 18f
+    val bob3 = kotlin.math.sin(t * Math.PI.toFloat() * 2f + 3.4f) * 12f
+
+    Image(
+        painter = painterResource(R.drawable.booster_bomb),
+        contentDescription = null,
+        modifier = Modifier
+            .padding(start = 6.dp, top = 96.dp)
+            .size(86.dp)
+            .graphicsLayer {
+                translationY = bob1
+                rotationZ = -8f + t * 16f
+                alpha = 0.96f
+            }
+    )
+    Image(
+        painter = painterResource(R.drawable.booster_star_gem),
+        contentDescription = null,
+        modifier = Modifier
+            .padding(top = 176.dp)
+            .align(Alignment.TopEnd)
+            .size(64.dp)
+            .graphicsLayer {
+                translationY = bob2
+                rotationZ = 10f - t * 20f
+                alpha = 0.95f
+            }
+    )
+    Image(
+        painter = painterResource(R.drawable.booster_zap_gem),
+        contentDescription = null,
+        modifier = Modifier
+            .align(Alignment.BottomStart)
+            .padding(start = 24.dp, bottom = 132.dp)
+            .size(56.dp)
+            .graphicsLayer {
+                translationY = bob3
+                rotationZ = 12f + t * 10f
+                alpha = 0.9f
+            }
+    )
+    Image(
+        painter = painterResource(R.drawable.fx_star),
+        contentDescription = null,
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(end = 30.dp, bottom = 190.dp)
+            .size(44.dp)
+            .graphicsLayer {
+                translationY = -bob2
+                alpha = 0.55f + 0.45f * kotlin.math.sin(t * Math.PI.toFloat() * 2f)
+            }
+    )
 }

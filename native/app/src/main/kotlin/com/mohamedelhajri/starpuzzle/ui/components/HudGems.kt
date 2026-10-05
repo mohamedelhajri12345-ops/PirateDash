@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,12 +35,14 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import com.mohamedelhajri.starpuzzle.R
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
 
 // ── The approved visual language: no flat progress bars ──────────────
@@ -156,37 +159,36 @@ fun BoosterChip(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Canvas(modifier = Modifier.size(16.dp)) {
-                val s = size.minDimension
-                when (label) {
-                    "BOMB" -> {
-                        drawCircle(Color(0xFF8D6E63), radius = s * 0.4f,
-                            center = Offset(s / 2f, s * 0.6f))
-                        drawCircle(GemGold, radius = s * 0.12f,
-                            center = Offset(s * 0.62f, s * 0.28f))
+            // Phase 2: real approved artwork (bomb + gems); MOVE stays
+            // as the clean procedural arrow.
+            when (label) {
+                "BOMB" -> Image(
+                    painter = painterResource(R.drawable.booster_bomb),
+                    contentDescription = label,
+                    modifier = Modifier.size(24.dp)
+                )
+                "ZAP" -> Image(
+                    painter = painterResource(R.drawable.booster_zap_gem),
+                    contentDescription = label,
+                    modifier = Modifier.size(22.dp)
+                )
+                "STAR" -> Image(
+                    painter = painterResource(R.drawable.booster_star_gem),
+                    contentDescription = label,
+                    modifier = Modifier.size(22.dp)
+                )
+                else -> Canvas(modifier = Modifier.size(18.dp)) {
+                    val s = size.minDimension
+                    val arc = Path().apply {
+                        arcTo(
+                            androidx.compose.ui.geometry.Rect(
+                                Offset(s * 0.15f, s * 0.15f), Size(s * 0.7f, s * 0.7f)
+                            ),
+                            0f, 300f, false
+                        )
                     }
-                    "ZAP" -> {
-                        val p = Path().apply {
-                            moveTo(s * 0.7f, 0f); lineTo(s * 0.2f, s * 0.55f)
-                            lineTo(s * 0.5f, s * 0.55f); lineTo(s * 0.3f, s)
-                            lineTo(s * 0.8f, s * 0.45f); lineTo(s * 0.5f, s * 0.45f)
-                            close()
-                        }
-                        drawPath(p, Color(0xFF40C4FF))
-                    }
-                    "STAR" -> drawPath(starPath(s), GemGold)
-                    else -> { // MOVE: circular arrow
-                        val arc = Path().apply {
-                            arcTo(
-                                androidx.compose.ui.geometry.Rect(
-                                    Offset(s * 0.15f, s * 0.15f), Size(s * 0.7f, s * 0.7f)
-                                ),
-                                0f, 300f, false
-                            )
-                        }
-                        drawPath(arc, GemGold,
-                            style = Stroke(width = s * 0.12f, cap = StrokeCap.Round))
-                    }
+                    drawPath(arc, GemGold,
+                        style = Stroke(width = s * 0.12f, cap = StrokeCap.Round))
                 }
             }
         }

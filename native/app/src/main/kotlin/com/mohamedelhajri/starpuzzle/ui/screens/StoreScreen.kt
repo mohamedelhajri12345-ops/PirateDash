@@ -218,7 +218,7 @@ fun StoreScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            if (isOwned) skin.name else "$price ●",
+                            if (isOwned) skin.name else "$price ◆",
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isSelected) StoreGold
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -286,7 +286,7 @@ fun StoreScreen(
                         )
                         Text(
                             if (isOwned) (if (isSelected) "ACTIVE" else "OWNED")
-                            else "${skin.price} ●",
+                            else "${skin.price} ◆",
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isSelected) StoreGold
                             else if (isOwned) Color(0xFF66BB6A)
@@ -320,20 +320,33 @@ private fun BoosterCard(
     ) {
         Box(
             modifier = Modifier
-                .size(54.dp)
+                .size(58.dp)
                 .background(StoreGold.copy(alpha = 0.12f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                when (label) {
-                    "BOMB" -> "◎"
-                    "ZAP" -> "⚡"
-                    "STAR" -> "★"
-                    else -> "↺"
-                },
-                style = MaterialTheme.typography.headlineMedium,
-                color = StoreGold
-            )
+            // Phase 2: the approved artwork — candy bomb + real gems
+            when (label) {
+                "BOMB" -> Image(
+                    painter = painterResource(R.drawable.booster_bomb),
+                    contentDescription = label,
+                    modifier = Modifier.size(46.dp)
+                )
+                "ZAP" -> Image(
+                    painter = painterResource(R.drawable.booster_zap_gem),
+                    contentDescription = label,
+                    modifier = Modifier.size(42.dp)
+                )
+                "STAR" -> Image(
+                    painter = painterResource(R.drawable.booster_star_gem),
+                    contentDescription = label,
+                    modifier = Modifier.size(42.dp)
+                )
+                else -> Text(
+                    "↺",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = StoreGold
+                )
+            }
         }
         Spacer(Modifier.height(8.dp))
         Text(
@@ -361,11 +374,21 @@ private fun BoosterCard(
                 )
                 .padding(horizontal = 12.dp, vertical = 3.dp)
         ) {
-            Text(
-                "$price ●",
-                style = MaterialTheme.typography.labelMedium,
-                color = if (affordable) StoreGold else Color(0xFF9FA8CC).copy(alpha = 0.6f)
-            )
+            androidx.compose.foundation.layout.Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.gem_coin),
+                    contentDescription = "Coins",
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "$price",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (affordable) StoreGold else Color(0xFF9FA8CC).copy(alpha = 0.6f)
+                )
+            }
         }
     }
 }
