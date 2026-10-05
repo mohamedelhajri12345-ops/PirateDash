@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Block Blast Clone</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-wrapper">
+        <div id="score-bar">
+            <div id="score-label">SCORE</div>
+            <div id="score-value">0</div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- START MENU OVERLAY -->
+        <div id="menuOverlay" class="overlay">
+            <div class="overlay-box">
+                <h1>🧱 Block Blast</h1>
+                <p>Drag & drop blocks to fill rows and columns!</p>
+                <button id="startBtn">▶ PLAY</button>
+            </div>
+        </div>
+
+        <!-- GAME OVER OVERLAY -->
+        <div id="gameOverOverlay" class="overlay" style="display:none;">
+            <div class="overlay-box">
+                <h1>💥 Game Over</h1>
+                <p>Your Score: <span id="finalScore">0</span></p>
+                <button id="restartBtn">🔄 PLAY AGAIN</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
