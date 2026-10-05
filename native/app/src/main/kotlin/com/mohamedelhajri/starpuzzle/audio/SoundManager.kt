@@ -384,7 +384,7 @@ class SoundManager(private val context: Context) {
             requestAudioFocus()
             runCatching {
                 if (bgm == null) {
-                    bgm = MediaPlayer.create(context, R.raw.bgm_space)?.apply {
+                    bgm = MediaPlayer.create(context, R.raw.bgm_main)?.apply {
                         isLooping = true
                     }
                 }

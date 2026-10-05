@@ -32,3 +32,10 @@ Every imported audio file, its exact source and its license. Updated: 2026-10-04
 | bgm_space.ogg | Calm ambient space loop from the earlier CC0 sourcing cycle (OpenGameArt CC0). Loopable, low-volume, user-controllable. |
 
 No sound in this game is copied from another commercial game. All SFX are CC0.
+
+
+Background music (v4.2.1+):
+- bgm_main.ogg — "Going Up" by ansimuz, source:
+  https://opengameart.org/content/going-up-adventure-chiptune
+  License: CC0 1.0 (public domain). Commercial use: YES. Attribution: not required.
+- (removed) bgm_space.ogg — replaced per owner direction.
