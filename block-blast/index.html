@@ -8,27 +8,69 @@
 </head>
 <body>
     <div id="game-wrapper">
+        <!-- GAME SCREEN TOP BAR (Block Blast style: big white score + coins) -->
         <div id="score-bar">
-            <div id="score-label">SCORE</div>
-            <div id="score-value">0</div>
+            <div id="bar-left">
+                <div id="gearBtn" title="Settings">&#9881;</div>
+            </div>
+            <div id="bar-center">
+                <div id="score-value">0</div>
+                <div id="best-line"><span id="star-mark">&#9733;</span><span id="best-value">BEST 0</span></div>
+            </div>
+            <div id="bar-right">
+                <div class="coin-chip"><span class="coin"></span><span id="coinsGame">0</span></div>
+            </div>
         </div>
         <canvas id="gameCanvas"></canvas>
 
-        <!-- START MENU OVERLAY -->
+        <!-- START MENU OVERLAY (Block Blast home structure) -->
         <div id="menuOverlay" class="overlay">
-            <div class="overlay-box">
-                <h1>⭐ Star Puzzle</h1>
-                <p>Drag &amp; drop blocks to fill rows and columns!</p>
-                <button id="startBtn">▶ PLAY</button>
+            <div class="menu-top">
+                <div class="avatar">M</div>
+                <div class="coin-chip big"><span class="coin"></span><span id="coinsMenu">0</span></div>
+            </div>
+            <div class="logo-block">
+                <div class="logo-tiles" id="logoTiles"></div>
+                <div class="logo-word">PUZZLE</div>
+            </div>
+            <div class="mascot" id="mascot">
+                <svg viewBox="0 0 120 120" width="132" height="132">
+                    <defs>
+                        <linearGradient id="mg" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#FFE38A"/>
+                            <stop offset="1" stop-color="#FFC93C"/>
+                        </linearGradient>
+                    </defs>
+                    <polygon points="60,4 74,44 118,48 84,76 95,118 60,94 25,118 36,76 2,48 46,44"
+                             fill="url(#mg)" stroke="#B8860B" stroke-width="5" stroke-linejoin="round"/>
+                    <circle cx="48" cy="58" r="6" fill="#3A3A55"/>
+                    <circle cx="72" cy="58" r="6" fill="#3A3A55"/>
+                    <circle cx="50" cy="56" r="2" fill="#fff"/>
+                    <circle cx="74" cy="56" r="2" fill="#fff"/>
+                    <path d="M50 72 Q60 80 70 72" stroke="#3A3A55" stroke-width="4" fill="none" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <button id="startBtn" class="play-btn">PLAY</button>
+            <div class="menu-row">
+                <button class="pill-btn">SHOP</button>
+                <button class="pill-btn">MISSIONS</button>
+            </div>
+            <div class="menu-icons">
+                <div class="round-ico">&#127873;</div>
+                <div class="round-ico">&#127919;</div>
+                <div class="round-ico">&#128081;</div>
+                <div class="round-ico">&#9881;</div>
             </div>
         </div>
 
-        <!-- GAME OVER OVERLAY -->
+        <!-- GAME OVER OVERLAY (Block Blast style) -->
         <div id="gameOverOverlay" class="overlay" style="display:none;">
             <div class="overlay-box">
-                <h1>💥 Game Over</h1>
-                <p>Your Score: <span id="finalScore">0</span></p>
-                <button id="restartBtn">🔄 PLAY AGAIN</button>
+                <div class="go-title">GAME OVER</div>
+                <div class="go-score" id="finalScore">0</div>
+                <div class="go-best" id="bestScore">BEST 0</div>
+                <div class="coin-chip big center"><span class="coin"></span><span id="coinsGo">0</span></div>
+                <button id="restartBtn" class="play-btn small">PLAY AGAIN</button>
             </div>
         </div>
     </div>

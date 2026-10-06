@@ -87,6 +87,8 @@ function placeBlock(block, row, col) {
         audio.stopBGM();
         audio.gameover.play(0.7);
         document.getElementById('finalScore').textContent = score;
+        document.getElementById('bestScore').textContent = 'BEST ' + Math.max(score, getBest());
+        document.getElementById('coinsGo').textContent = getCoins();
         setTimeout(function() {
             document.getElementById('gameOverOverlay').style.display = 'flex';
         }, 500);
@@ -134,6 +136,7 @@ function checkAndClearLines() {
     }
 
     score += totalCleared * GRID_SIZE * 2;
+    addCoins(totalCleared * 5); // +5 coins per cleared line (reward UI)
 
     if (totalCleared >= 2) {
         audio.combo.play(0.7);
@@ -156,4 +159,33 @@ function checkGameOver() {
 
 function updateScoreDisplay() {
     document.getElementById('score-value').textContent = score;
+}
+
+
+// -------------------- COINS & BEST (reward UI) --------------------
+// Additive on top of the original gameplay: coins are visible on
+// every screen (owner requirement) and the best score persists.
+var coinStore = (typeof localStorage !== 'undefined')
+    ? localStorage
+    : { getItem: function() { return null; }, setItem: function() {} };
+
+function getBest() {
+    return parseInt(coinStore.getItem('sp_best') || '0', 10) || 0;
+}
+
+function getCoins() {
+    return parseInt(coinStore.getItem('sp_coins') || '100', 10) || 0;
+}
+
+function addCoins(n) {
+    coinStore.setItem('sp_coins', getCoins() + n);
+    refreshCoinsUI();
+}
+
+function refreshCoinsUI() {
+    var ids = ['coinsGame', 'coinsMenu', 'coinsGo'];
+    for (var i = 0; i < ids.length; i++) {
+        var el = document.getElementById(ids[i]);
+        if (el) el.textContent = getCoins();
+    }
 }

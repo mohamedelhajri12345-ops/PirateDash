@@ -17,11 +17,11 @@ const GRID_Y = 10;
 const BLOCK_AREA_Y = GRID_Y + GRID_PX + 30;
 const PREVIEW_CELL = 20;
 
-// Star Puzzle brand palette (Block Blast reference hues,
-// shifted toward indigo / violet / gold)
+// Block palette — restored EXACTLY to the original file the owner
+// provided (block-blast-clone/game.js). Only the brand name differs.
 const COLORS = [
-    '#FF6B6B', '#4ECDC4', '#5B8DEF', '#96CEB4',
-    '#FFE066', '#DDA0DD', '#FF8C42', '#9B7BFF'
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
+    '#FFEAA7', '#DDA0DD', '#FF8C42', '#74b9ff'
 ];
 
 const SHAPES = [

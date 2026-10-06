@@ -1,3 +1,10 @@
+/* ============================================================
+   STAR PUZZLE — style.css
+   Look matched to the REAL Block Blast (official Play Store
+   screenshots): flat navy #242C54, big white score, wide gold
+   3D PLAY button, glossy letter-tile logo, coin chips.
+   ============================================================ */
+
 * {
     margin: 0;
     padding: 0;
@@ -7,7 +14,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, #0e0b28, #2a2b6e, #20213f);
+    background: #242C54;               /* real Block Blast background */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -21,85 +28,214 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
+/* ---------------- GAME SCREEN TOP BAR ---------------- */
 #score-bar {
+    width: 100%;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    color: white;
+    justify-content: space-between;
+    color: #fff;
+    padding: 0 4px;
 }
 
-#score-label {
-    font-size: 14px;
-    letter-spacing: 3px;
-    color: #aaa;
+#bar-left, #bar-right { width: 64px; }
+#bar-left { display: flex; justify-content: flex-start; }
+#bar-right { display: flex; justify-content: flex-end; }
+#bar-center { text-align: center; }
+
+#gearBtn {
+    font-size: 26px;
+    color: #9AA5CE;
+    cursor: pointer;
+    line-height: 1;
 }
 
 #score-value {
-    font-size: 36px;
-    font-weight: bold;
-    color: #FFD34E;
-    text-shadow: 0 0 10px rgba(255, 211, 78, 0.5);
+    font-size: 44px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.05;
+    text-shadow: 0 3px 0 rgba(0,0,0,0.35);
 }
 
+#best-line {
+    font-size: 13px;
+    font-weight: 800;
+    color: #9AA5CE;
+    letter-spacing: 1px;
+}
+
+#star-mark { color: #FFD34E; margin-right: 3px; }
+
+/* ---------------- COIN CHIP ---------------- */
+.coin-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.30);
+    border-radius: 20px;
+    padding: 5px 12px 5px 6px;
+    color: #fff;
+    font-weight: 800;
+    font-size: 15px;
+}
+.coin-chip .coin {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #FFE38A, #FFC93C 60%, #C88A00);
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.25), 0 1px 2px rgba(0,0,0,0.4);
+    display: inline-block;
+}
+.coin-chip.big { padding: 7px 16px 7px 8px; font-size: 18px; }
+.coin-chip.big .coin { width: 26px; height: 26px; }
+.coin-chip.center { margin: 10px auto 4px; }
+
+/* ---------------- CANVAS ---------------- */
 #gameCanvas {
     border-radius: 12px;
-    background: #181833;
-    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), 0 0 60px rgba(100, 100, 255, 0.1);
     touch-action: none;
+    background: #242C54;
 }
 
+/* ---------------- OVERLAYS ---------------- */
 .overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: #242C54;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     border-radius: 12px;
     z-index: 10;
 }
 
-.overlay-box {
-    text-align: center;
-    color: white;
-    padding: 40px;
+/* ---------------- ENTRY (HOME) SCREEN ---------------- */
+.menu-top {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
-
-.overlay-box h1 {
-    font-size: 32px;
-    margin-bottom: 15px;
-}
-
-.overlay-box p {
-    font-size: 16px;
-    color: #ccc;
-    margin-bottom: 25px;
-}
-
-.overlay-box button {
-    padding: 14px 40px;
+.avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #5876CA, #3B4E9E);
+    border: 3px solid #FFD34E;
+    color: #fff;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 20px;
-    font-weight: bold;
+}
+
+.logo-block { text-align: center; margin-bottom: 6px; }
+.logo-tiles { display: flex; justify-content: center; gap: 7px; }
+.logo-tiles .tile {
+    width: 54px;
+    height: 54px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 900;
+    font-size: 30px;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.30);
+    box-shadow: inset 0 4px 0 rgba(255,255,255,0.30),
+                inset 0 -5px 0 rgba(0,0,0,0.22),
+                0 4px 8px rgba(0,0,0,0.35);
+}
+.logo-word {
+    margin-top: 10px;
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: 12px;
+    color: #fff;
+    text-shadow: 0 3px 0 rgba(0,0,0,0.30);
+    text-indent: 12px; /* balance letter-spacing */
+}
+
+.mascot { margin: 6px 0 10px; }
+.mascot svg { filter: drop-shadow(0 5px 6px rgba(0,0,0,0.35)); }
+
+/* wide gold PLAY button like the real game */
+.play-btn {
+    width: 300px;
+    padding: 16px 0;
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #fff;
+    text-shadow: 0 2px 0 rgba(0,0,0,0.25);
     border: none;
-    border-radius: 50px;
-    background: linear-gradient(135deg, #FFD34E, #FF9F1C);
-    color: white;
+    border-radius: 18px;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(255, 170, 40, 0.45);
-    transition: transform 0.2s, box-shadow 0.2s;
+    background: linear-gradient(180deg, #FFD34E 0%, #FFB32E 55%, #FF9F1C 100%);
+    box-shadow: inset 0 5px 0 rgba(255,255,255,0.35),
+                inset 0 -6px 0 rgba(180,90,0,0.45),
+                0 6px 12px rgba(0,0,0,0.35);
+    transition: transform 0.08s;
 }
+.play-btn:active { transform: translateY(4px); box-shadow: inset 0 3px 0 rgba(255,255,255,0.30); }
+.play-btn.small { width: 240px; font-size: 20px; padding: 13px 0; margin-top: 14px; }
 
-.overlay-box button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 25px rgba(255, 170, 40, 0.6);
+.menu-row {
+    display: flex;
+    gap: 14px;
+    margin-top: 16px;
 }
+.pill-btn {
+    padding: 9px 22px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #FFD34E;
+    background: rgba(0,0,0,0.25);
+    border: 2px solid #FFD34E;
+    border-radius: 24px;
+    cursor: pointer;
+}
+.pill-btn:active { transform: scale(0.96); }
 
-.overlay-box button:active {
-    transform: scale(0.95);
+.menu-icons {
+    display: flex;
+    gap: 18px;
+    margin-top: 18px;
 }
+.round-ico {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.30);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    cursor: pointer;
+}
+.round-ico:active { transform: scale(0.94); }
+
+/* ---------------- GAME OVER ---------------- */
+.overlay-box { text-align: center; color: #fff; padding: 24px; }
+.go-title {
+    font-size: 34px;
+    font-weight: 900;
+    color: #FFD34E;
+    text-shadow: 0 3px 0 rgba(0,0,0,0.35);
+    letter-spacing: 2px;
+}
+.go-score { font-size: 58px; font-weight: 900; margin: 10px 0 2px; }
+.go-best { font-size: 15px; font-weight: 800; color: #9AA5CE; margin-bottom: 8px; }
