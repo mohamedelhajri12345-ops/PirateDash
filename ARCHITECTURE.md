@@ -3,8 +3,8 @@
 ## الطبقات
 1. **LevelCatalog / LevelDefinition / LevelProgress** (game/): طبقة المراحل. توليد حتمي خالص بدون libGDX لاختباره رأسياً. التقدم محفوظ في Preferences كسلسلة نجوم 1000 خانة.
 2. **Screens** (screens/): MainMenuScreen ← WorldMapScreen ← GameScreen(GAME_MODE_LEVEL) + ResultDialog / ProfileScreen. القوائم Stage+Table واللعب Screen يدوي الرسم.
-3. **Game core** (game/): Board/PieceHolder/Piece/Scorer كما في Klooni الأصلي مع إضافات: Board.setCell/isEmpty/clearArea/clearCross، Piece.specialChance.
-4. **Klooni.java**: الإعدادات والعملات والصوت، كلها عبر Preferences.
+3. **Game core** (game/): Board/PieceHolder/Piece/Scorer كما في المرجع المفتوح مع إضافات: Board.setCell/isEmpty/clearArea/clearCross، Piece.specialChance.
+4. **GameStore**: الإعدادات والعملات والصوت، كلها عبر Preferences.
 
 ## أنماط مهمة
 - التدرّج بين الشاشات: game.transitionTo() يمر عبر TransitionScreen ويلغي السابقة.

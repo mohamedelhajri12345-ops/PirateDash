@@ -1,1 +1,1 @@
-Un juego libGDX basado en 1010!
+Relajante rompecabezas de bloques: 1000 niveles, skins y potenciadores. ¡Sin conexión!

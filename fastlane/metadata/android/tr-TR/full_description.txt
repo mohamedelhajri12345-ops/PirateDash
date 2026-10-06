@@ -1,26 +1,24 @@
-Klooni Tanıtımı
-------------------
+Mohamed Elhajri'den Star Puzzle
 
-1010! Klooni, Gram Games'in orijinal minimalist bulmaca oyununun 
-ücretsiz, özgür ve açık kaynaklı bir kopyasıdır.
+Güzel bir yıldızlı gökyüzü altında premium bir blok bulmaca.
 
+★ NASIL OYNANIR
+Parçaları 10x10 tahtaya sürükleyin. Tam bir satır veya sütun doldurunca temizlenir.
 
-Tahtayı Doldur
------------------
+★ 1000 SEVİYE
+Her seviyenin kendi hedefi var: puan, süre veya hamle limiti.
 
-Blokları tahtaya sürükleyin ve mümkün olduğunca çok sayıda
-şeridi temizlemeye çalışın! Göründüğü kadar kolay değil :)
+★ MALZEME TEMALARI
+Buz, ateş, mücevher ve ahşap temalar — hepsini ücretsiz mağazadan topla.
 
+★ GÜÇLENDİRİCİLER
+Zor seviyelerde bombalar, şimşekler ve yıldız mücevherleri.
 
-Geliştir
--------
+★ DAHA FAZLASI
+- Günlük seri ödülleri
+- Başarımlar
+- Tatmin edici sesli kombolar
+- Akıcı dokunmatik kontroller
+- Çevrimdışı
 
-Oyunu özelleştir! İşbirliği yap! Yeni temalar,
-parçalar, sesler ve hatta patlamalar ekle!
-
-
-İyi eğlenceler :)
------------
-
-Genel olarak, oyunu oynarken eğlenmeyi unutmayın.
-İsterseniz hayranlığınızı orijinal geliştiricilerle paylaşın!
+Ücretsiz, sevgiyle yapıldı!

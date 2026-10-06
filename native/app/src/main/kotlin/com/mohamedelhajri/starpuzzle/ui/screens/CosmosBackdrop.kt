@@ -20,7 +20,7 @@ fun CosmosBackdrop(modifier: Modifier = Modifier) {
                     listOf(
                         Color(0xFF16162A),
                         Color(0xFF1C1C36),
-                        Color(0xFF101020)
+                        Color(0xFF0F0F1E)
                     )
                 )
             )

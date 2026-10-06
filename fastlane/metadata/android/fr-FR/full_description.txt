@@ -1,30 +1,24 @@
-Présentation de 1010! Klooni
-----------------------
+Star Puzzle par Mohamed Elhajri
 
-1010! Klooni est un jeu gratuit, libre et open-source 
-repoduisant les mécanismes du jeu puzzle minimaliste 
-original écrit par Gram Games.
+Un casse-tête de blocs premium et apaisant sous un beau ciel étoilé.
 
+★ COMMENT JOUER
+Faites glisser les pièces sur la grille 10x10. Remplissez une ligne ou colonne pour la vider.
 
-Remplissez le Plateau de Jeu
-----------------------------
+★ 1000 NIVEAUX
+Chaque niveau a son objectif : score, temps ou coups limités.
 
-Glissez et déposez les pièces sur le plateau de jeu et 
-tentez de réaliser le maximum de lignes possible !
-Attention, ce n'est pas si facile que cela en a l'air o:)
+★ SKINS DE MATÉRIAUX
+Glace, feu, gemmes et bois : collectionnez-les dans la boutique gratuite.
 
+★ BOOSTERS
+Bombes, éclairs et gemmes étoile pour les niveaux difficiles.
 
-Hackez le Jeu
--------------
+★ PLUS
+- Récompenses de série quotidienne
+- Succès
+- Combos avec sons satisfaisants
+- Contrôles tactiles fluides
+- Hors ligne
 
-Personnlisez le jeu ! Vous pouvez collaborer à ce jeu 
-en ajoutant de nouveaux thèmes, pièces, sons ou encore 
-des explosions!
-
-
-Faites-vous plaisir :)
-----------------------
-
-N'oubliez de vous amuser pendant que vous jouez à ce jeu ! 
-N'hésitez pas non plus à faire un petit coucou au dévelopeur 
-original pour le remercier si vous aimez ce jeu !
+Gratuit, fait avec amour !

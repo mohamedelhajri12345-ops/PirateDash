@@ -1,26 +1,24 @@
-Introducing Klooni
-------------------
+Star Puzzle by Mohamed Elhajri
 
-1010! Klooni is a free, libre and open source klooni of
-the original minimalistic puzzle game by Gram Games.
+A calm, premium block puzzle under a beautiful night sky.
 
+★ HOW TO PLAY
+Drag pieces onto the 10x10 board. Fill a full row or column to clear it. The round ends when no piece fits — plan ahead!
 
-Fill Up the Board
------------------
+★ 1000 HANDCRAFTED LEVELS
+Every level has its own goal: score targets, timed challenges, or move limits. Beat them to unlock new worlds.
 
-Drag the pieces on the board and try to clear as many
-strips as you can! Beware though, it is not that easy o:)
+★ MATERIAL SKINS
+Play with ice, fire, gem and wood skins — collect them all in the free shop.
 
+★ BOOSTERS
+Stuck? Use bombs, lightning and star gems to blast through hard levels.
 
-Hack It
--------
+★ MORE TO LOVE
+- Daily streak rewards
+- Achievements wall
+- Combo effects with satisfying sound
+- Smooth, snappy touch controls
+- No internet needed
 
-Make the game yours! Collaborate! Add new themes, pieces,
-sounds or even explosions!
-
-
-Have Fun :)
------------
-
-Overall, remember to have fun while playing the game. Also
-share the love with the original developers if you like it!
+Free to play. Made with love — enjoy the stars!

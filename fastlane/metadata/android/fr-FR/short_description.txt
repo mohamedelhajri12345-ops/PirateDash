@@ -1,1 +1,1 @@
-Un clone de 1010 écrit avec libGDX
+Casse-tête de blocs relaxant : 1000 niveaux, skins et boosters. Hors ligne !

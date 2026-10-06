@@ -1,27 +1,24 @@
-Introduciendo Klooni
---------------------
+Star Puzzle de Mohamed Elhajri
 
-1010! Klooni es un versión klooni libre y gratuita del
-original juego de puzles minimalista por Gram Games.
+Un rompecabezas de bloques premium y relajante bajo un hermoso cielo nocturno.
 
+★ CÓMO JUGAR
+Arrastra las piezas al tablero 10x10. Completa una fila o columna para limpiarla. La ronda termina cuando ninguna pieza encaja.
 
-Llena el Tablero
-----------------
+★ 1000 NIVELES DISEÑADOS A MANO
+Cada nivel tiene su objetivo: puntuación, tiempo o límites de movimientos.
 
-¡Arrastra las piezas en el tablero e intenta limpiar tantas
-filas como puedas! Aunque te aviso, no es tan fácil o:)
+★ SKINS DE MATERIALES
+Hielo, fuego, gemas y madera: recógelos todos en la tienda gratuita.
 
+★ POTENCIADORES
+Bombas, rayos y gemas estrella para superar los niveles difíciles.
 
-Hackéalo
---------
+★ MÁS
+- Recompensas por racha diaria
+- Logros
+- Combos con sonidos satisfactorios
+- Controles táctiles fluidos
+- Sin conexión
 
-¡Haz el juego tuyo! ¡Colabora! Añade tus nuevos temas,
-piezas, sonidos ¡o incluso explosiones!
-
-
-Diviértete
-----------
-
-Sobre todo, recuerda divertirte mientras juegas. ¡No te olvides
-de compartir tu amor con el juego y los desarrolladores originales
-si te ha gustado!
+¡Gratis y hecho con amor!

@@ -1,1 +1,1 @@
-1010 tabanlı bir libGDX oyunu
+Rahatlatıcı blok bulmaca: 1000 seviye, temalar ve güçlendiriciler. Çevrimdışı!
