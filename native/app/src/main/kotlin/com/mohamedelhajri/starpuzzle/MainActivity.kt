@@ -6,8 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -18,23 +18,20 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
-import com.mohamedelhajri.starpuzzle.core.GameProgress
-import com.mohamedelhajri.starpuzzle.core.FeelState
-import com.mohamedelhajri.starpuzzle.core.LevelCatalog
-import com.mohamedelhajri.starpuzzle.ui.screens.GameScreen
-import com.mohamedelhajri.starpuzzle.ui.screens.MainMenuScreen
-import com.mohamedelhajri.starpuzzle.ui.screens.StoreScreen
-import com.mohamedelhajri.starpuzzle.ui.screens.WorldMapScreen
-import com.mohamedelhajri.starpuzzle.ui.theme.MaterialSkinCatalog
-import com.mohamedelhajri.starpuzzle.ui.theme.PieceSkins
-import com.mohamedelhajri.starpuzzle.ui.theme.SkinState
+import com.mohamedelhajri.starpuzzle.ui.screens.BbPersistence
+import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastGameScreen
+import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastGameOverScreen
+import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastMenuScreen
 import com.mohamedelhajri.starpuzzle.ui.theme.StarPuzzleTheme
 
-sealed class Screen {
-    data object Menu : Screen()
-    data object WorldMap : Screen()
-    data object Store : Screen()
-    data class Game(val levelId: Int, val daily: Boolean) : Screen()
+/**
+ * Navigation for the native Block Blast mode (owner direction, Oct 6 2026):
+ * Menu -> Game -> Game Over, all in Kotlin/Compose — no WebView.
+ */
+sealed class BbScreen {
+    data object Menu : BbScreen()
+    data object Game : BbScreen()
+    data class GameOver(val score: Int, val best: Int, val coinsEarned: Int) : BbScreen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -52,14 +49,14 @@ class MainActivity : ComponentActivity() {
     /**
      * Crash shield: every uncaught exception is persisted to crash.log before
      * the default handler runs, so any field report can be diagnosed from the
-     * exact stack trace. The audit fixes keep this from ever firing in play.
+     * exact stack trace.
      */
     private fun installCrashShield() {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             runCatching {
                 java.io.File(filesDir, "crash.log").writeText(
-                    "version=8.0.0\n" + android.util.Log.getStackTraceString(throwable)
+                    "version=8.1.0\n" + android.util.Log.getStackTraceString(throwable)
                 )
             }
             previous?.uncaughtException(thread, throwable)
@@ -67,26 +64,27 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** Best score & coins via the existing SharedPreferences-backed store. */
+private class BbPrefs(private val store: PrefsSaveStore) : BbPersistence {
+    override fun loadBest(): Int = store.loadBestEndless()
+    override fun loadCoins(): Int = store.loadCoins()
+    override fun saveBest(value: Int) = store.saveBestEndless(value)
+    override fun saveCoins(value: Int) = store.saveCoins(value)
+}
+
 @Composable
 fun StarPuzzleApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val store = remember { PrefsSaveStore(context) }
     val sound = remember { SoundManager(context) }
-    // restore the saved piece-color skin (coerced against catalog size)
-    SkinState.active = store.loadSkin().coerceIn(0, MaterialSkinCatalog.allSkins.size - 1)
-    FeelState.motionOn = store.loadExtraBool("motion", true)
-    val progress = remember { GameProgress(store) }
-    // v4.1: one streak refresh per app open (+100 coins on every 7th day)
-    progress.refreshStreak()
+    val persistence = remember { BbPrefs(store) }
 
-    var screen by remember { mutableStateOf<Screen>(Screen.Menu) }
-    var soundOn by remember { mutableStateOf(store.loadSound()) }
-    var musicOn by remember { mutableStateOf(store.loadMusic()) }
-    var hapticsOn by remember { mutableStateOf(store.loadHaptics()) }
-    var motionOn by remember { mutableStateOf(store.loadExtraBool("motion", true)) }
+    var screen by remember { mutableStateOf<BbScreen>(BbScreen.Menu) }
+    var best by remember { mutableStateOf(persistence.loadBest()) }
+    var coins by remember { mutableStateOf(persistence.loadCoins()) }
 
-    sound.enabled = soundOn
-    sound.music(musicOn)
+    sound.enabled = store.loadSound()
+    sound.music(store.loadMusic())
 
     // Release the native SoundPool when the UI finally leaves
     DisposableEffect(sound) {
@@ -94,7 +92,7 @@ fun StarPuzzleApp() {
     }
 
     // Lifecycle: silence everything in the background, resume in front
-    DisposableEffect(sound, musicOn) {
+    DisposableEffect(sound) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_PAUSE -> sound.onPause()
@@ -106,50 +104,40 @@ fun StarPuzzleApp() {
         onDispose { ProcessLifecycleOwner.get().lifecycle.removeObserver(observer) }
     }
 
+    fun refreshPersisted() {
+        best = persistence.loadBest()
+        coins = persistence.loadCoins()
+    }
+
     AnimatedContent(
         targetState = screen,
         transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(180)) },
         label = "screen"
     ) { current ->
         when (current) {
-            is Screen.Menu -> MainMenuScreen(
-                progress = progress,
-                sound = sound,
-                soundOn = soundOn,
-                musicOn = musicOn,
-                hapticsOn = hapticsOn,
-                onToggleSound = { soundOn = it; store.saveSound(it) },
-                onToggleMusic = { musicOn = it; store.saveMusic(it); sound.music(it) },
-                onToggleHaptics = { hapticsOn = it; store.saveHaptics(it) },
-                motionOn = motionOn,
-                onToggleMotion = {
-                    motionOn = it
-                    store.saveExtraBool("motion", it)
-                    FeelState.motionOn = it
+            is BbScreen.Menu -> BlockBlastMenuScreen(
+                best = best,
+                coins = coins,
+                onPlay = { screen = BbScreen.Game }
+            )
+            is BbScreen.Game -> BlockBlastGameScreen(
+                soundManager = sound,
+                persistence = persistence,
+                onExit = {
+                    refreshPersisted()
+                    screen = BbScreen.Menu
                 },
-                onPlay = { screen = Screen.Game(progress.firstUnfinished(), false) },
-                onWorldMap = { screen = Screen.WorldMap },
-                onDaily = { screen = Screen.Game(LevelCatalog.dailyLevelId(), true) },
-                onOpenStore = { screen = Screen.Store }
+                onGameOver = { s, b, earned ->
+                    refreshPersisted()
+                    screen = BbScreen.GameOver(s, b, earned)
+                }
             )
-            is Screen.Store -> StoreScreen(
-                progress = progress,
-                sound = sound,
-                onBack = { screen = Screen.Menu }
-            )
-            is Screen.WorldMap -> WorldMapScreen(
-                progress = progress,
-                onBack = { screen = Screen.Menu },
-                onPickLevel = { id -> screen = Screen.Game(id, false) }
-            )
-            is Screen.Game -> GameScreen(
-                levelId = current.levelId,
-                daily = current.daily,
-                progress = progress,
-                sound = sound,
-                onExit = { screen = Screen.Menu },
-                onWorldMap = { screen = Screen.WorldMap },
-                onNext = { id -> screen = Screen.Game(id, current.daily) }
+            is BbScreen.GameOver -> BlockBlastGameOverScreen(
+                score = current.score,
+                best = current.best,
+                coins = coins,
+                onPlayAgain = { screen = BbScreen.Game },
+                onMenu = { screen = BbScreen.Menu }
             )
         }
     }
