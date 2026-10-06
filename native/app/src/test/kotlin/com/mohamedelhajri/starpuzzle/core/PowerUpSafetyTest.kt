@@ -122,10 +122,11 @@ class PowerUpSafetyTest {
     @Test
     fun zapBoosterClearsCross() {
         val s = GameSession(LevelCatalog.getLevel(1))
-        for (x in 0 until 10) s.board.setCell(x, 4, 5)
+        val n = s.board.size
+        for (x in 0 until n) s.board.setCell(x, 4, 5)
         val cells = s.applyBooster(GameProgress.BoosterKind.LIGHTNING, 0, 4)
-        assertTrue(cells.size == 10)
-        assertTrue(s.board.isEmpty(5, 4))
+        assertTrue("cleared $cells", cells.size == n)
+        assertTrue(s.board.isEmpty(n / 2, 4))
     }
 
     @Test
