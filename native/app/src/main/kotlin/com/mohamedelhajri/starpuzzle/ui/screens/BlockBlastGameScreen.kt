@@ -38,7 +38,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -110,18 +110,21 @@ fun BlockBlastGameScreen(
     val textMeasurer = rememberTextMeasurer()
 
     // Tintable cell textures ported from the owner's reference package.
+    val appContext = androidx.compose.ui.platform.LocalContext.current
+    fun cellTex(res: Int): ImageBitmap =
+        android.graphics.BitmapFactory.decodeResource(appContext.resources, res).asImageBitmap()
     val cellTextures = mapOf(
-        1 to imageResource(R.drawable.bb_cell_basic),
-        2 to imageResource(R.drawable.bb_cell_bubble),
-        3 to imageResource(R.drawable.bb_cell_bulb),
-        4 to imageResource(R.drawable.bb_cell_circle),
-        5 to imageResource(R.drawable.bb_cell_drop),
-        6 to imageResource(R.drawable.bb_cell_ghost),
-        7 to imageResource(R.drawable.bb_cell_grass),
-        8 to imageResource(R.drawable.bb_cell_leaf),
-        9 to imageResource(R.drawable.bb_cell_snowflake),
-        10 to imageResource(R.drawable.bb_cell_sun)
-    )
+        1 to R.drawable.bb_cell_basic,
+        2 to R.drawable.bb_cell_bubble,
+        3 to R.drawable.bb_cell_bulb,
+        4 to R.drawable.bb_cell_circle,
+        5 to R.drawable.bb_cell_drop,
+        6 to R.drawable.bb_cell_ghost,
+        7 to R.drawable.bb_cell_grass,
+        8 to R.drawable.bb_cell_leaf,
+        9 to R.drawable.bb_cell_snowflake,
+        10 to R.drawable.bb_cell_sun
+    ).mapValues { cellTex(it.value) }
     val texture = cellTextures[BlockBlastSpec.activeCellSkinId]
 
     var score by remember { mutableIntStateOf(0) }
