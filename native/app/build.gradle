@@ -18,7 +18,7 @@ android {
     signingConfigs {
         release {
             // Same keystore as v1.x so the native build installs as a clean update
-            storeFile file("../../android/starpuzzle.keystore")
+            storeFile file("../../android/signing/starpuzzle.keystore")
             storePassword "piratedash2026"
             keyAlias "piratedash"
             keyPassword "piratedash2026"
