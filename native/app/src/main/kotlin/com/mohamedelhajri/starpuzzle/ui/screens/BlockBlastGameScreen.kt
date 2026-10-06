@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,6 +78,7 @@ fun BlockBlastGameScreen(
 ) {
     val core = remember { BlockBlastCore() }
     val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
 
     var score by remember { mutableIntStateOf(0) }
     var best by remember { mutableIntStateOf(0) }
@@ -102,7 +105,7 @@ fun BlockBlastGameScreen(
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             if (result.clearedLines >= 2) soundManager.play(SoundManager.Sfx.COMBO)
             else soundManager.play(SoundManager.Sfx.CLEAR)
-            flash.snapTo(1f)
+            scope.launch { flash.snapTo(1f) }
         } else {
             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             soundManager.play(SoundManager.Sfx.PLACE)
