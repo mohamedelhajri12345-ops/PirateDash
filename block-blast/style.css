@@ -7,7 +7,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    background: linear-gradient(135deg, #0e0b28, #2a2b6e, #20213f);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -40,13 +40,13 @@ body {
 #score-value {
     font-size: 36px;
     font-weight: bold;
-    color: #FFD700;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    color: #FFD34E;
+    text-shadow: 0 0 10px rgba(255, 211, 78, 0.5);
 }
 
 #gameCanvas {
     border-radius: 12px;
-    background: #1a1a2e;
+    background: #181833;
     box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), 0 0 60px rgba(100, 100, 255, 0.1);
     touch-action: none;
 }
@@ -88,16 +88,16 @@ body {
     font-weight: bold;
     border: none;
     border-radius: 50px;
-    background: linear-gradient(135deg, #FF6B6B, #FF8C42);
+    background: linear-gradient(135deg, #FFD34E, #FF9F1C);
     color: white;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+    box-shadow: 0 4px 15px rgba(255, 170, 40, 0.45);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .overlay-box button:hover {
     transform: scale(1.05);
-    box-shadow: 0 6px 25px rgba(255, 107, 107, 0.6);
+    box-shadow: 0 6px 25px rgba(255, 170, 40, 0.6);
 }
 
 .overlay-box button:active {
