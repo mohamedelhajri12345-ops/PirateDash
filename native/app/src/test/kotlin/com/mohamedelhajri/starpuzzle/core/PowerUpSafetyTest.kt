@@ -219,16 +219,26 @@ class PowerUpSafetyTest {
         val idx = s.tray.indexOf(piece)
         var px = -1
         var py = -1
-        outer@ for (y in 0 until 10) for (x in 0 until 10) {
+        val n = s.board.size
+        outer@ for (y in 0 until n) for (x in 0 until n) {
             if (s.placePiece(idx, x, y) != null) { px = x; py = y; break@outer }
         }
         assertTrue(px >= 0)
         assertTrue(s.canTakeBack())
-        // a clear changed one of its cells — lifting must now be impossible
-        s.board.setCell(px, py, (piece.colorIndex + 1) % 9)
+        // a clear changed one of its cells — lifting must now be impossible.
+        // Block Blast shapes can have an empty origin cell, so target the
+        // piece's first actually-filled cell instead of (0,0).
+        var fi = 0
+        var fj = 0
+        outer2@ for (i in 0 until piece.cellRows) for (j in 0 until piece.cellCols) {
+            if (piece.filled(i, j)) { fi = i; fj = j; break@outer2 }
+        }
+        val cx = px + fj
+        val cy = py + fi
+        s.board.setCell(cx, cy, (piece.colorIndex + 1) % 9)
         assertFalse(s.canTakeBack())
         assertNull(s.takeBackLast())
-        assertTrue("failed lift must not touch the board", s.board.colorAt(px, py) >= 0)
+        assertTrue("failed lift must not touch the board", s.board.colorAt(cx, cy) >= 0)
     }
 
     @Test
