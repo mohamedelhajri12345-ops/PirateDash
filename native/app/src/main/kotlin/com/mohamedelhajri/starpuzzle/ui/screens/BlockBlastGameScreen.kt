@@ -122,7 +122,7 @@ fun BlockBlastGameScreen(
         9 to imageResource(R.drawable.bb_cell_snowflake),
         10 to imageResource(R.drawable.bb_cell_sun)
     )
-    val texture get() = cellTextures[BlockBlastSpec.activeCellSkinId]
+    val texture = cellTextures[BlockBlastSpec.activeCellSkinId]
 
     var score by remember { mutableIntStateOf(0) }
     var best by remember { mutableIntStateOf(0) }
