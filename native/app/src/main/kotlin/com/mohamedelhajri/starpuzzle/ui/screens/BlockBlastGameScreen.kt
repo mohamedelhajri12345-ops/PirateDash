@@ -39,7 +39,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.graphics.graphicsLayerAlpha
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.TextMeasurer
@@ -394,7 +394,7 @@ fun BlockBlastGameScreen(
                 color = BbGold,
                 fontSize = (34 + 10 * (1f - comboAnim.value)).sp,
                 fontWeight = FontWeight.Black,
-                modifier = Modifier.graphicsLayerAlpha(comboAnim.value)
+                modifier = Modifier.alpha(comboAnim.value)
             )
         }
     }
