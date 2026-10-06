@@ -376,22 +376,13 @@ class SoundManager(private val context: Context) {
         }
     }
 
-    /** Starts the background loop (no-op when already playing). */
+    /**
+     * Background music was REMOVED PERMANENTLY by owner request
+     * (Oct 6 2026): only SFX remain. This is now a no-op kept for
+     * API compatibility with older screens.
+     */
     fun startMusic() {
-        if (!musicEnabled) return
-        synchronized(bgmLock) {
-            if (bgm?.isPlaying == true) return
-            requestAudioFocus()
-            runCatching {
-                if (bgm == null) {
-                    bgm = MediaPlayer.create(context, R.raw.bgm_main)?.apply {
-                        isLooping = true
-                    }
-                }
-                applyBgmVolume()
-                bgm?.start()
-            }
-        }
+        // intentionally empty — no background music in Star Puzzle
     }
 
     private fun pauseBgm() {

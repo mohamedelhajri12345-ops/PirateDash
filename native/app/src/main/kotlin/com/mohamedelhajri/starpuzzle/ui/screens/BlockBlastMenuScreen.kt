@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.BlockBlastSpec
 
 /**
@@ -42,7 +43,10 @@ import com.mohamedelhajri.starpuzzle.core.BlockBlastSpec
 fun BlockBlastMenuScreen(
     best: Int,
     coins: Int,
-    onPlay: () -> Unit
+    soundManager: SoundManager,
+    onPlay: () -> Unit,
+    onShop: () -> Unit,
+    onMissions: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -80,12 +84,13 @@ fun BlockBlastMenuScreen(
             verticalArrangement = Arrangement.Center
         ) {
             // ---- glossy letter-tile logo: STAR ----
-            val tiles = remember {
+            val tiles = remember(BlockBlastSpec.activeSkinId) {
+                val palette = BlockBlastSpec.COLORS
                 listOf(
-                    "S" to BlockBlastSpec.COLORS[0],
-                    "T" to BlockBlastSpec.COLORS[2],
-                    "A" to BlockBlastSpec.COLORS[4],
-                    "R" to BlockBlastSpec.COLORS[1]
+                    "S" to palette[0],
+                    "T" to palette[2],
+                    "A" to palette[4],
+                    "R" to palette[1]
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -140,7 +145,10 @@ fun BlockBlastMenuScreen(
                         ),
                         RoundedCornerShape(18.dp)
                     )
-                    .clickable { onPlay() }
+                    .clickable {
+                        soundManager.play(SoundManager.Sfx.START)
+                        onPlay()
+                    }
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -158,8 +166,14 @@ fun BlockBlastMenuScreen(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.padding(top = 16.dp)
             ) {
-                PillButton("SHOP")
-                PillButton("MISSIONS")
+                PillButton("SHOP") {
+                    soundManager.play(SoundManager.Sfx.CONFIRM)
+                    onShop()
+                }
+                PillButton("MISSIONS") {
+                    soundManager.play(SoundManager.Sfx.CONFIRM)
+                    onMissions()
+                }
             }
 
             Spacer(Modifier.height(14.dp))
@@ -196,12 +210,12 @@ fun BlockBlastMenuScreen(
 }
 
 @Composable
-private fun PillButton(label: String) {
+private fun PillButton(label: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .background(Color.Black.copy(alpha = 0.25f), RoundedCornerShape(24.dp))
             .border(2.dp, BbGold, RoundedCornerShape(24.dp))
-            .clickable { }
+            .clickable { onClick() }
             .padding(horizontal = 22.dp, vertical = 9.dp)
     ) {
         Text(

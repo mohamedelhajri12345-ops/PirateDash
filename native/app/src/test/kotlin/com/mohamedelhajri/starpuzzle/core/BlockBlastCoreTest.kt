@@ -24,6 +24,9 @@ class BlockBlastCoreTest {
         assertEquals(8, BlockBlastSpec.SIZE)
         assertEquals(26, BlockBlastSpec.SHAPES.size)
         assertEquals(8, BlockBlastSpec.COLORS.size)
+        // 4 vibrant shop skins, 8 colors each
+        assertEquals(4, BlockBlastSpec.SKINS.size)
+        assertTrue(BlockBlastSpec.SKINS.all { it.colors.size == 8 })
         assertEquals(16, BlockBlastSpec.POINTS_PER_LINE)
         assertEquals(3, BlockBlastSpec.TRAY_SIZE)
         assertEquals(5, BlockBlastSpec.COINS_PER_LINE)
@@ -36,6 +39,30 @@ class BlockBlastCoreTest {
         assertEquals(listOf(1, 0), l[0].toList())
         assertEquals(listOf(1, 0), l[1].toList())
         assertEquals(listOf(1, 1), l[2].toList())
+    }
+
+    @Test
+    fun `reroll keeps placed slots empty and unplaced slots filled`() {
+        val core = newCore()
+        core.place(0, 0, 0) // slot 0 used
+        core.rerollTray()
+        assertNull(core.tray[0])
+        assertTrue(core.tray[1] != null && core.tray[2] != null)
+    }
+
+    @Test
+    fun `clear reports cells with colors for the burst effect`() {
+        val core = newCore()
+        var cleared: PlaceResult? = null
+        repeat(8) { c ->
+            val idx = core.tray.indexOfFirst { p -> p != null }
+            val result = core.place(idx, 0, c)
+            if (result != null && result.clearedLines > 0) cleared = result
+        }
+        // the final placement cleared 8 cells, each with a color
+        assertEquals(8, cleared!!.clearedCells.size)
+        assertEquals(1, cleared!!.clearedLines)
+        assertTrue(cleared!!.clearedCells.all { it.color == BlockBlastSpec.SKINS[0].colors[0] })
     }
 
     @Test

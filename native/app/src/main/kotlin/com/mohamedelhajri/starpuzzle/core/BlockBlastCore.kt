@@ -20,11 +20,37 @@ object BlockBlastSpec {
     const val TRAY_SIZE = 3
     const val COINS_PER_LINE = 5
 
-    /** Block palette — EXACTLY the owner's original file. */
-    val COLORS = listOf(
-        0xFFFF6B6B.toInt(), 0xFF4ECDC4.toInt(), 0xFF45B7D1.toInt(), 0xFF96CEB4.toInt(),
-        0xFFFFEAA7.toInt(), 0xFFDDA0DD.toInt(), 0xFFFF8C42.toInt(), 0xFF74b9ff.toInt()
+    /**
+     * Vibrant Block Blast-style block skins (owner request, Oct 6 2026:
+     * "vibrant, fun colors like the blue in Block Blast").
+     * Index 0 = default, selected skin is persisted in the shop.
+     */
+    data class Skin(val id: Int, val name: String, val colors: List<Int>)
+
+    val SKINS = listOf(
+        Skin(0, "Blast Classic", listOf(
+            0xFF4D7CFE.toInt(), 0xFFEF5350.toInt(), 0xFFFFC93C.toInt(), 0xFF66BB6A.toInt(),
+            0xFFAB47BC.toInt(), 0xFFFF7043.toInt(), 0xFF26C6DA.toInt(), 0xFFEC407A.toInt()
+        )),
+        Skin(1, "Ocean Splash", listOf(
+            0xFF29B6F6.toInt(), 0xFF26C6DA.toInt(), 0xFF66BB6A.toInt(), 0xFFFFCA28.toInt(),
+            0xFF42A5F5.toInt(), 0xFF00ACC1.toInt(), 0xFF7E57C2.toInt(), 0xFFFF7043.toInt()
+        )),
+        Skin(2, "Candy Party", listOf(
+            0xFFEC407A.toInt(), 0xFFFFA726.toInt(), 0xFFAB47BC.toInt(), 0xFFEF5350.toInt(),
+            0xFFFFD54F.toInt(), 0xFFFF80AB.toInt(), 0xFF8BC34A.toInt(), 0xFF42A5F5.toInt()
+        )),
+        Skin(3, "Neon Night", listOf(
+            0xFF00E5FF.toInt(), 0xFF7C4DFF.toInt(), 0xFF00E676.toInt(), 0xFFFF4081.toInt(),
+            0xFFFFD600.toInt(), 0xFF651FFF.toInt(), 0xFF00BFA5.toInt(), 0xFFFF6D00.toInt()
+        ))
     )
+
+    /** Currently selected skin (set by the shop, read by the core). */
+    @Volatile var activeSkinId: Int = 0
+
+    val COLORS: List<Int>
+        get() = SKINS[activeSkinId].colors
 
     /** The 26 shapes, exactly as in the original file (1 = filled). */
     val SHAPES: List<List<IntArray>> = listOf(
@@ -64,8 +90,16 @@ data class BlockPiece(val shape: List<IntArray>, val color: Int) {
     val cellCount: Int get() = shape.sumOf { row -> row.count { it == 1 } }
 }
 
+/** A cell cleared by a placement (pre-clear color kept for the burst effect). */
+data class ClearedCell(val row: Int, val col: Int, val color: Int)
+
 /** Result of a placement. */
-data class PlaceResult(val cellsPlaced: Int, val clearedLines: Int) {
+data class PlaceResult(
+    val cellsPlaced: Int,
+    val clearedLines: Int,
+    val clearedCells: List<ClearedCell> = emptyList(),
+    val placedCells: List<ClearedCell> = emptyList()
+) {
     val scoreGained: Int get() = cellsPlaced + clearedLines * BlockBlastSpec.POINTS_PER_LINE
 }
 
@@ -94,6 +128,20 @@ class BlockBlastCore {
         isGameOver = false
         lastClearedLines = 0
         refillTray()
+    }
+
+    /** "New Pieces" booster: reroll the remaining tray pieces. */
+    fun rerollTray() {
+        val remaining = tray.toMutableList()
+        for (i in remaining.indices) {
+            if (remaining[i] != null) {
+                remaining[i] = BlockPiece(
+                    shape = BlockBlastSpec.SHAPES[RandomSource.nextInt(BlockBlastSpec.SHAPES.size)],
+                    color = BlockBlastSpec.COLORS[RandomSource.nextInt(BlockBlastSpec.COLORS.size)]
+                )
+            }
+        }
+        tray = remaining
     }
 
     fun refillTray() {
@@ -137,13 +185,17 @@ class BlockBlastCore {
         val piece = tray.getOrNull(trayIndex) ?: return null
         if (!canPlace(piece, row, col)) return null
 
+        val placedCells = mutableListOf<ClearedCell>()
         for (r in 0 until piece.rows) {
             for (c in 0 until piece.cols) {
-                if (piece.shape[r][c] == 1) grid[row + r][col + c] = piece.color
+                if (piece.shape[r][c] == 1) {
+                    grid[row + r][col + c] = piece.color
+                    placedCells.add(ClearedCell(row + r, col + c, piece.color))
+                }
             }
         }
 
-        val cleared = clearLines()
+        val (cleared, clearedCells) = clearLines()
         score += piece.cellCount + cleared * BlockBlastSpec.POINTS_PER_LINE
         lastClearedLines = cleared
 
@@ -153,19 +205,26 @@ class BlockBlastCore {
         if (tray.all { it == null }) refillTray()
 
         checkGameOver()
-        return PlaceResult(piece.cellCount, cleared)
+        return PlaceResult(piece.cellCount, cleared, clearedCells, placedCells)
     }
 
-    private fun clearLines(): Int {
+    private fun clearLines(): Pair<Int, List<ClearedCell>> {
         val fullRows = (0 until BlockBlastSpec.SIZE).filter { r ->
             (0 until BlockBlastSpec.SIZE).all { c -> grid[r][c] != null }
         }
         val fullCols = (0 until BlockBlastSpec.SIZE).filter { c ->
             (0 until BlockBlastSpec.SIZE).all { r -> grid[r][c] != null }
         }
-        for (r in fullRows) for (c in 0 until BlockBlastSpec.SIZE) grid[r][c] = null
-        for (c in fullCols) for (r in 0 until BlockBlastSpec.SIZE) grid[r][c] = null
-        return fullRows.size + fullCols.size
+        val cleared = mutableListOf<ClearedCell>()
+        for (r in fullRows) for (c in 0 until BlockBlastSpec.SIZE) {
+            grid[r][c]?.let { cleared.add(ClearedCell(r, c, it)) }
+            grid[r][c] = null
+        }
+        for (c in fullCols) for (r in 0 until BlockBlastSpec.SIZE) {
+            grid[r][c]?.let { cleared.add(ClearedCell(r, c, it)) }
+            grid[r][c] = null
+        }
+        return fullRows.size + fullCols.size to cleared
     }
 
     /** Game over when none of the remaining tray pieces fits anywhere. */

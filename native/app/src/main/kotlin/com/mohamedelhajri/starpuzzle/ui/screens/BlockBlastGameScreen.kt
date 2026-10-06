@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -37,14 +38,23 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
-import kotlinx.coroutines.launch
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.graphicsLayerAlpha
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.BlockBlastCore
+import com.mohamedelhajri.starpuzzle.core.BlockBlastMissions
 import com.mohamedelhajri.starpuzzle.core.BlockBlastSpec
 import com.mohamedelhajri.starpuzzle.core.BlockPiece
+import com.mohamedelhajri.starpuzzle.core.ClearedCell
+import kotlinx.coroutines.launch
+import kotlin.math.max
+import kotlin.math.min
 
 // Real Block Blast colors, measured from the official Play Store screenshots.
 val BbBackground = Color(0xFF242C54)
@@ -61,13 +71,25 @@ interface BbPersistence {
     fun saveCoins(value: Int)
 }
 
+// ---------------- particle burst ----------------
+/** Cleared cells kept for the burst effect; particle motion is
+ *  derived deterministically from the cell coords, so no per-frame
+ *  state is needed. */
+data class BurstSeed(val clearedCells: List<ClearedCell>, val lines: Int)
+
+/** Deterministic pseudo-random from a cell + particle index (0..1). */
+private fun hash01(r: Int, c: Int, i: Int): Float {
+    val x = (r * 73856093) xor (c * 19349663) xor (i * 83492791)
+    return ((x ushr 8) and 0xFFFF).toFloat() / 65535f
+}
+
 /**
  * Native Block Blast game screen — 100% Kotlin/Compose, no WebView.
  *
- * Layout mirrors the real Block Blast game screen: big white score,
- * BEST line with a gold star, coin chip, 8x8 board on a panel,
- * three tray slots, drag & drop with drop preview, pickup scale,
- * haptics and the reference SFX set.
+ * Owner tuning (Oct 6 2026): vivid BB-style block skins, particle
+ * bursts + score popup + combo banner on line clears, NO background
+ * music (removed permanently), more forgiving drag & drop (easy
+ * pickup, clamped snapping), haptics and the reference SFX set.
  */
 @Composable
 fun BlockBlastGameScreen(
@@ -79,6 +101,7 @@ fun BlockBlastGameScreen(
     val core = remember { BlockBlastCore() }
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
+    val textMeasurer = rememberTextMeasurer()
 
     var score by remember { mutableIntStateOf(0) }
     var best by remember { mutableIntStateOf(0) }
@@ -89,7 +112,12 @@ fun BlockBlastGameScreen(
     var draggingIndex by remember { mutableIntStateOf(-1) }
     var dragPos by remember { mutableStateOf(Offset.Zero) }
     val pickupAnim = remember { Animatable(1f) }
-    val flash = remember { Animatable(0f) }
+
+    // clear-line burst effects
+    var burstSeed by remember { mutableStateOf<BurstSeed?>(null) }
+    val burstProgress = remember { Animatable(1f) }
+    var comboCount by remember { mutableIntStateOf(0) }
+    val comboAnim = remember { Animatable(0f) }
 
     var gameOverFired by remember { mutableStateOf(false) }
 
@@ -97,15 +125,22 @@ fun BlockBlastGameScreen(
         val result = core.place(trayIndex, row, col) ?: return
         version++
         score = core.score
+        BlockBlastMissions.onPlaced(result.cellsPlaced, result.clearedLines, core.score)
         if (result.clearedLines > 0) {
             val earned = result.clearedLines * BlockBlastSpec.COINS_PER_LINE
             coins += earned
             coinsEarned += earned
             persistence.saveCoins(coins)
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-            if (result.clearedLines >= 2) soundManager.play(SoundManager.Sfx.COMBO)
-            else soundManager.play(SoundManager.Sfx.CLEAR)
-            scope.launch { flash.snapTo(1f) }
+            soundManager.play(SoundManager.Sfx.CLEAR)
+            if (result.clearedLines >= 2) {
+                soundManager.play(SoundManager.Sfx.COMBO)
+                comboCount = result.clearedLines
+                scope.launch { comboAnim.snapTo(0f); comboAnim.animateTo(1f, tween(500)) }
+            }
+            soundManager.play(SoundManager.Sfx.COIN)
+            burstSeed = BurstSeed(result.clearedCells, result.clearedLines)
+            scope.launch { burstProgress.snapTo(0f) }
         } else {
             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             soundManager.play(SoundManager.Sfx.PLACE)
@@ -117,7 +152,6 @@ fun BlockBlastGameScreen(
         if (core.isGameOver && !gameOverFired) {
             gameOverFired = true
             soundManager.play(SoundManager.Sfx.GAME_OVER)
-            soundManager.stopMusic()
             onGameOver(core.score, best, coinsEarned)
         }
     }
@@ -130,27 +164,32 @@ fun BlockBlastGameScreen(
         coinsEarned = 0
         gameOverFired = false
         version++
-        soundManager.play(SoundManager.Sfx.START)
-        soundManager.startMusic()
     }
 
+    // drive the burst animation
     LaunchedEffect(version) {
-        if (flash.value > 0f) flash.animateTo(0f, tween(350))
+        if (burstProgress.value < 1f) {
+            burstProgress.animateTo(1f, tween(650))
+        }
     }
 
-    // pickup scale animation (the real game grows the piece when lifted)
+    // pickup scale (the real game grows the piece when lifted)
     LaunchedEffect(draggingIndex) {
-        if (draggingIndex >= 0) pickupAnim.animateTo(1.25f, tween(120))
+        if (draggingIndex >= 0) pickupAnim.animateTo(1.25f, tween(90))
         else pickupAnim.snapTo(1f)
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BbBackground)
-            .padding(top = 14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
         // ---------------- TOP BAR ----------------
         Row(
             modifier = Modifier
@@ -162,7 +201,10 @@ fun BlockBlastGameScreen(
                 "\u2699",
                 color = BbTextSoft,
                 fontSize = 26.sp,
-                modifier = Modifier.clickable { onExit() }
+                modifier = Modifier.clickable {
+                    soundManager.play(SoundManager.Sfx.BACK)
+                    onExit()
+                }
             )
             Spacer(Modifier.weight(1f))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -215,7 +257,6 @@ fun BlockBlastGameScreen(
                 }
         ) {
             val g = geometry(size.width, size.height)
-            val flashAlpha = flash.value
 
             // ---- board container panel ----
             drawRoundRect(
@@ -232,7 +273,7 @@ fun BlockBlastGameScreen(
                     val y = g.boardY + g.pad + r * (g.cell + g.gap)
                     val color = core.grid[r][c]
                     if (color != null) {
-                        drawBbBlock(color, x, y, g.cell, flashAlpha)
+                        drawBbBlock(color, x, y, g.cell, 0f)
                     } else {
                         drawRoundRect(
                             color = BbCell,
@@ -281,6 +322,42 @@ fun BlockBlastGameScreen(
                 }
             }
 
+            // ---- particle burst + score popup on line clears ----
+            val t = burstProgress.value
+            val seed = burstSeed
+            if (t < 1f && seed != null && seed.clearedCells.isNotEmpty()) {
+                val popupXAvg = seed.clearedCells.map { g.boardX + g.pad + (it.col + 0.5f) * (g.cell + g.gap) }.average().toFloat()
+                val popupYAvg = seed.clearedCells.map { g.boardY + g.pad + (it.row + 0.5f) * (g.cell + g.gap) }.average().toFloat()
+                for (cell in seed.clearedCells) {
+                    val cx = g.boardX + g.pad + (cell.col + 0.5f) * (g.cell + g.gap)
+                    val cy = g.boardY + g.pad + (cell.row + 0.5f) * (g.cell + g.gap)
+                    for (i in 0 until 6) {
+                        val ang = hash01(cell.row, cell.col, i) * 2f * Math.PI.toFloat()
+                        val speed = 0.4f + hash01(cell.col, cell.row, i + 7) * 0.8f
+                        val px = cx + kotlin.math.cos(ang) * speed * t * 120f
+                        val py = cy + kotlin.math.sin(ang) * speed * t * 120f + 40f * t * t
+                        drawCircle(
+                            color = Color(cell.color.toLong() or 0xFF000000L).copy(alpha = (1f - t).coerceIn(0f, 1f)),
+                            radius = g.cell * 0.16f * (1f - t * 0.6f),
+                            center = Offset(px, py)
+                        )
+                    }
+                }
+                // floating score popup
+                val layout = textMeasurer.measure(
+                    "+" + (seed.lines * BlockBlastSpec.POINTS_PER_LINE),
+                    TextStyle(fontSize = (g.cell * 0.9f).toSp(), fontWeight = FontWeight.Black)
+                )
+                drawText(
+                    layout,
+                    topLeft = Offset(
+                        popupXAvg - layout.size.width / 2f,
+                        popupYAvg - layout.size.height / 2f - t * 90f
+                    ),
+                    alpha = (1f - t).coerceIn(0f, 1f)
+                )
+            }
+
             // ---- dragged piece follows the finger ----
             if (draggingIndex >= 0 && piece != null) {
                 val c = g.cell * pickupAnim.value
@@ -288,6 +365,37 @@ fun BlockBlastGameScreen(
                 val h = piece.rows * c
                 drawPiece(piece, dragPos.x - w / 2f, dragPos.y - h / 2f, w, h, c)
             }
+        }
+
+        // ---------------- BOOSTER ROW (free during testing) ----------------
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            BbGoldPill("NEW PIECES") {
+                if (draggingIndex < 0) {
+                    core.rerollTray()
+                    version++
+                    soundManager.play(SoundManager.Sfx.CONFIRM)
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
+            }
+        }
+        }
+    }
+
+    // ---------------- COMBO BANNER overlay ----------------
+    if (comboCount > 0 && comboAnim.value < 1f) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                "COMBO x$comboCount",
+                color = BbGold,
+                fontSize = (34 + 10 * (1f - comboAnim.value)).sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.graphicsLayerAlpha(comboAnim.value)
+            )
         }
     }
 }
@@ -301,20 +409,27 @@ private data class GameGeometry(
     val trayX: Float, val trayY: Float, val slotW: Float, val slotH: Float,
     val slotGap: Float, val previewCell: Float
 ) {
+    /** Easy pickup: generous hitbox around each tray slot. */
     fun trayIndexAt(offset: Offset): Int {
-        if (offset.y < trayY || offset.y > trayY + slotH) return -1
+        val slack = 34f
+        if (offset.y < trayY - slack || offset.y > trayY + slotH + slack) return -1
         val rel = offset.x - trayX
-        if (rel < 0f) return -1
-        val idx = (rel / (slotW + slotGap)).toInt()
-        if (idx in 0..2 && rel <= idx * (slotW + slotGap) + slotW) return idx
-        return -1
+        if (rel < -slotW / 2f) return -1
+        val idx = ((rel + slotW / 2f) / (slotW + slotGap)).toInt()
+        return if (idx in 0..2) idx else -1
     }
 
-    /** Anchor (row, col) when the piece is centered on the finger. */
+    /**
+     * Anchor (row, col) when the piece is centered on the finger.
+     * Forgiving snapping: the raw cell is clamped into the valid
+     * range before the fit check, so drops near the border land.
+     */
     fun boardAnchor(pos: Offset, piece: BlockPiece?, core: BlockBlastCore): Pair<Int, Int>? {
         if (piece == null) return null
-        val col = ((pos.x - boardX - pad - piece.cols * (cell + gap) / 2f) / (cell + gap)).toInt()
-        val row = ((pos.y - boardY - pad - piece.rows * (cell + gap) / 2f) / (cell + gap)).toInt()
+        val rawCol = ((pos.x - boardX - pad - piece.cols * (cell + gap) / 2f) / (cell + gap))
+        val rawRow = ((pos.y - boardY - pad - piece.rows * (cell + gap) / 2f) / (cell + gap))
+        val col = min(max(rawCol.toInt(), 0), BlockBlastSpec.SIZE - piece.cols)
+        val row = min(max(rawRow.toInt(), 0), BlockBlastSpec.SIZE - piece.rows)
         if (core.canPlace(piece, row, col)) return row to col
         return null
     }
@@ -325,7 +440,7 @@ private fun geometry(widthPx: Float, heightPx: Float): GameGeometry {
     val padPx = 12f
     val gapPx = 3f
     val slotGap = 14f
-    // bottom = 16.15 + 1.425 * boardSide  (derived: tray sits below the board)
+    // bottom = 16.15 + 1.425 * boardSide  (tray sits below the board)
     val byHeight = (heightPx - 16.15f) / 1.425f
     val boardSide = minOf(widthPx - margin * 2f, byHeight)
     val cell = (boardSide - padPx * 2f - gapPx * 7f) / 8f
@@ -387,7 +502,7 @@ private fun DrawScope.drawBbBlock(color: Int, x: Float, y: Float, cell: Float, f
 }
 
 // ----------------------------------------------------------------
-// Coin chip (shared with the menu screen)
+// Shared chips & buttons
 // ----------------------------------------------------------------
 @Composable
 fun BbCoinChip(coins: Int, big: Boolean = false) {
@@ -408,6 +523,24 @@ fun BbCoinChip(coins: Int, big: Boolean = false) {
             color = Color.White,
             fontWeight = FontWeight.ExtraBold,
             fontSize = if (big) 18.sp else 15.sp
+        )
+    }
+}
+
+@Composable
+fun BbGoldPill(label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .background(BbGold, RoundedCornerShape(24.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 18.dp, vertical = 8.dp)
+    ) {
+        Text(
+            label,
+            color = Color(0xFF3A2E00),
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 14.sp,
+            letterSpacing = 1.sp
         )
     }
 }
