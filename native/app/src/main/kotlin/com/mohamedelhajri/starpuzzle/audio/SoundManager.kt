@@ -107,7 +107,7 @@ class SoundManager(private val context: Context) {
         )
         .build()
 
-    enum class Sfx { PLACE, INVALID, CLEAR, COMBO, BOMB, STAR, GAME_OVER, COIN, CONFIRM, BACK, START, COMPLETE, HIGH_SCORE, COMBO2, COMBO3, COMBO4, PICKUP, DRAG }
+    enum class Sfx { PLACE, INVALID, CLEAR, COMBO, BOMB, STAR, GAME_OVER, COIN, CONFIRM, BACK, START, COMPLETE, HIGH_SCORE, COMBO2, COMBO3, COMBO4, PICKUP, DRAG, EFFECT_EXPLODE, EFFECT_SPIN, EFFECT_WATERDROP, EFFECT_EVAPORATE, EFFECT_VANISH }
 
     /** Configuration table mapping every Sfx event to its audio parameters. */
     private val configTable: Map<Sfx, SoundConfig> = mapOf(
@@ -256,8 +256,8 @@ class SoundManager(private val context: Context) {
             duckMusic = true
         ),
         Sfx.PICKUP to SoundConfig(
-            resId = R.raw.pickup,
-            baseVolume = 0.55f,
+            resId = R.raw.take_pieces,
+            baseVolume = 0.80f,
             basePitch = 1.10f,
             pitchJitter = 0f,
             maxPolyphony = 1,
@@ -272,6 +272,52 @@ class SoundManager(private val context: Context) {
             maxPolyphony = 1,
             eventClass = SoundClass.UI_TAP,
             duckMusic = false
+        ),
+        // --- clear-effect stings from the reference package ---
+        Sfx.EFFECT_EXPLODE to SoundConfig(
+            resId = R.raw.effect_explode,
+            baseVolume = 0.90f,
+            basePitch = 1.00f,
+            pitchJitter = 0f,
+            maxPolyphony = 2,
+            eventClass = SoundClass.POWERUP_SPECIAL,
+            duckMusic = true
+        ),
+        Sfx.EFFECT_SPIN to SoundConfig(
+            resId = R.raw.effect_spin,
+            baseVolume = 0.90f,
+            basePitch = 1.00f,
+            pitchJitter = 0f,
+            maxPolyphony = 2,
+            eventClass = SoundClass.POWERUP_SPECIAL,
+            duckMusic = true
+        ),
+        Sfx.EFFECT_WATERDROP to SoundConfig(
+            resId = R.raw.effect_waterdrop,
+            baseVolume = 0.90f,
+            basePitch = 1.00f,
+            pitchJitter = 0f,
+            maxPolyphony = 2,
+            eventClass = SoundClass.POWERUP_SPECIAL,
+            duckMusic = true
+        ),
+        Sfx.EFFECT_EVAPORATE to SoundConfig(
+            resId = R.raw.effect_evaporate,
+            baseVolume = 0.90f,
+            basePitch = 1.00f,
+            pitchJitter = 0f,
+            maxPolyphony = 2,
+            eventClass = SoundClass.POWERUP_SPECIAL,
+            duckMusic = true
+        ),
+        Sfx.EFFECT_VANISH to SoundConfig(
+            resId = R.raw.effect_vanish,
+            baseVolume = 0.90f,
+            basePitch = 1.00f,
+            pitchJitter = 0f,
+            maxPolyphony = 2,
+            eventClass = SoundClass.POWERUP_SPECIAL,
+            duckMusic = true
         )
     )
 

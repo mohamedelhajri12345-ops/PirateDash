@@ -106,6 +106,11 @@ fun StarPuzzleApp() {
     remember {
         BlockBlastMissions.store = missionStore
         BlockBlastSpec.activeSkinId = store.loadSkin().coerceIn(0, BlockBlastSpec.SKINS.size - 1)
+        // cell style & clear effect from the reference package (persisted)
+        BlockBlastSpec.activeCellSkinId = store.loadExtraInt("bb_cell_skin", 0)
+            .coerceIn(0, BlockBlastSpec.CELL_SKINS.size - 1)
+        BlockBlastSpec.activeClearEffectId = store.loadExtraInt("bb_clear_effect", 0)
+            .coerceIn(0, BlockBlastSpec.CLEAR_EFFECTS.size - 1)
         store.saveMusic(false) // background music removed permanently
         true
     }
@@ -172,6 +177,14 @@ fun StarPuzzleApp() {
                     onSkinSelected = { id ->
                         BlockBlastSpec.activeSkinId = id
                         store.saveSkin(id)
+                    },
+                    onCellSkinSelected = { id ->
+                        BlockBlastSpec.activeCellSkinId = id
+                        store.saveExtraInt("bb_cell_skin", id)
+                    },
+                    onClearEffectSelected = { id ->
+                        BlockBlastSpec.activeClearEffectId = id
+                        store.saveExtraInt("bb_clear_effect", id)
                     },
                     onBack = {
                         refreshPersisted()

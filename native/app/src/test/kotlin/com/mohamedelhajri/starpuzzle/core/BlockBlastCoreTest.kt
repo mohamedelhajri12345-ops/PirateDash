@@ -27,6 +27,9 @@ class BlockBlastCoreTest {
         // 4 vibrant shop skins, 8 colors each
         assertEquals(4, BlockBlastSpec.SKINS.size)
         assertTrue(BlockBlastSpec.SKINS.all { it.colors.size == 8 })
+        // reference-package catalogs: 11 cell styles, 5 clear effects
+        assertEquals(11, BlockBlastSpec.CELL_SKINS.size)
+        assertEquals(5, BlockBlastSpec.CLEAR_EFFECTS.size)
         assertEquals(16, BlockBlastSpec.POINTS_PER_LINE)
         assertEquals(3, BlockBlastSpec.TRAY_SIZE)
         assertEquals(5, BlockBlastSpec.COINS_PER_LINE)

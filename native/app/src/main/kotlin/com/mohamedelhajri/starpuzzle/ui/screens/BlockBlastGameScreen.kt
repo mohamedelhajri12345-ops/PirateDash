@@ -34,6 +34,11 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -46,6 +51,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mohamedelhajri.starpuzzle.R
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.BlockBlastCore
 import com.mohamedelhajri.starpuzzle.core.BlockBlastMissions
@@ -103,6 +109,21 @@ fun BlockBlastGameScreen(
     val scope = rememberCoroutineScope()
     val textMeasurer = rememberTextMeasurer()
 
+    // Tintable cell textures ported from the owner's reference package.
+    val cellTextures = mapOf(
+        1 to imageResource(R.drawable.bb_cell_basic),
+        2 to imageResource(R.drawable.bb_cell_bubble),
+        3 to imageResource(R.drawable.bb_cell_bulb),
+        4 to imageResource(R.drawable.bb_cell_circle),
+        5 to imageResource(R.drawable.bb_cell_drop),
+        6 to imageResource(R.drawable.bb_cell_ghost),
+        7 to imageResource(R.drawable.bb_cell_grass),
+        8 to imageResource(R.drawable.bb_cell_leaf),
+        9 to imageResource(R.drawable.bb_cell_snowflake),
+        10 to imageResource(R.drawable.bb_cell_sun)
+    )
+    val texture get() = cellTextures[BlockBlastSpec.activeCellSkinId]
+
     var score by remember { mutableIntStateOf(0) }
     var best by remember { mutableIntStateOf(0) }
     var coins by remember { mutableIntStateOf(0) }
@@ -139,6 +160,14 @@ fun BlockBlastGameScreen(
                 scope.launch { comboAnim.snapTo(0f); comboAnim.animateTo(1f, tween(500)) }
             }
             soundManager.play(SoundManager.Sfx.COIN)
+            // reference-package clear effect + its own SFX
+            when (BlockBlastSpec.activeClearEffectId) {
+                1 -> soundManager.play(SoundManager.Sfx.EFFECT_SPIN)
+                2 -> soundManager.play(SoundManager.Sfx.EFFECT_WATERDROP)
+                3 -> soundManager.play(SoundManager.Sfx.EFFECT_EVAPORATE)
+                4 -> soundManager.play(SoundManager.Sfx.EFFECT_VANISH)
+                else -> soundManager.play(SoundManager.Sfx.EFFECT_EXPLODE)
+            }
             burstSeed = BurstSeed(result.clearedCells, result.clearedLines)
             scope.launch { burstProgress.snapTo(0f) }
         } else {
@@ -169,7 +198,7 @@ fun BlockBlastGameScreen(
     // drive the burst animation
     LaunchedEffect(version) {
         if (burstProgress.value < 1f) {
-            burstProgress.animateTo(1f, tween(650))
+            burstProgress.animateTo(1f, tween(550))
         }
     }
 
@@ -273,7 +302,7 @@ fun BlockBlastGameScreen(
                     val y = g.boardY + g.pad + r * (g.cell + g.gap)
                     val color = core.grid[r][c]
                     if (color != null) {
-                        drawBbBlock(color, x, y, g.cell, 0f)
+                        drawBbBlock(color, x, y, g.cell, 0f, texture)
                     } else {
                         drawRoundRect(
                             color = BbCell,
@@ -318,31 +347,67 @@ fun BlockBlastGameScreen(
                 )
                 val p = core.tray.getOrNull(i)
                 if (p != null && i != draggingIndex) {
-                    drawPiece(p, sx, g.trayY, g.slotW, g.slotH, g.previewCell)
+                    drawPiece(p, sx, g.trayY, g.slotW, g.slotH, g.previewCell, texture)
                 }
             }
 
-            // ---- particle burst + score popup on line clears ----
+            // ---- line-clear effect (ported from the reference package) ----
             val t = burstProgress.value
             val seed = burstSeed
             if (t < 1f && seed != null && seed.clearedCells.isNotEmpty()) {
+                val effId = BlockBlastSpec.activeClearEffectId
                 val popupXAvg = seed.clearedCells.map { g.boardX + g.pad + (it.col + 0.5f) * (g.cell + g.gap) }.average().toFloat()
                 val popupYAvg = seed.clearedCells.map { g.boardY + g.pad + (it.row + 0.5f) * (g.cell + g.gap) }.average().toFloat()
-                for (cell in seed.clearedCells) {
-                    val cx = g.boardX + g.pad + (cell.col + 0.5f) * (g.cell + g.gap)
-                    val cy = g.boardY + g.pad + (cell.row + 0.5f) * (g.cell + g.gap)
-                    for (i in 0 until 6) {
-                        val ang = hash01(cell.row, cell.col, i) * 2f * Math.PI.toFloat()
-                        val speed = 0.4f + hash01(cell.col, cell.row, i + 7) * 0.8f
-                        val px = cx + kotlin.math.cos(ang) * speed * t * 120f
-                        val py = cy + kotlin.math.sin(ang) * speed * t * 120f + 40f * t * t
-                        drawCircle(
-                            color = Color(cell.color.toLong() or 0xFF000000L).copy(alpha = (1f - t).coerceIn(0f, 1f)),
-                            radius = g.cell * 0.16f * (1f - t * 0.6f),
-                            center = Offset(px, py)
-                        )
+                val fade = (1f - t).coerceIn(0f, 1f)
+
+                if (effId == 0) {
+                    // EXPLODE: shards burst out of every cleared cell
+                    for (cell in seed.clearedCells) {
+                        val cx = g.boardX + g.pad + (cell.col + 0.5f) * (g.cell + g.gap)
+                        val cy = g.boardY + g.pad + (cell.row + 0.5f) * (g.cell + g.gap)
+                        for (i in 0 until 6) {
+                            val ang = hash01(cell.row, cell.col, i) * 2f * Math.PI.toFloat()
+                            val speed = 0.4f + hash01(cell.col, cell.row, i + 7) * 0.8f
+                            val px = cx + kotlin.math.cos(ang) * speed * t * 120f
+                            val py = cy + kotlin.math.sin(ang) * speed * t * 120f + 40f * t * t
+                            drawCircle(
+                                color = Color(cell.color.toLong() or 0xFF000000L).copy(alpha = fade),
+                                radius = g.cell * 0.16f * (1f - t * 0.6f),
+                                center = Offset(px, py)
+                            )
+                        }
+                    }
+                } else {
+                    // the cleared cells themselves animate away
+                    for (cell in seed.clearedCells) {
+                        val x = g.boardX + g.pad + cell.col * (g.cell + g.gap)
+                        val y = g.boardY + g.pad + cell.row * (g.cell + g.gap)
+                        val cx = x + g.cell / 2f
+                        val cy = y + g.cell / 2f
+                        when (effId) {
+                            1 -> rotate(degrees = t * 540f, pivot = Offset(cx, cy)) {
+                                val sc = (1f - t).coerceAtLeast(0.05f)
+                                drawBbBlock(cell.color, cx - g.cell * sc / 2f, cy - g.cell * sc / 2f,
+                                    g.cell * sc, 0f, texture, fade)
+                            }
+                            2 -> { // WATERDROP: shrinks into the bottom of the cell
+                                val sc = (1f - t).coerceAtLeast(0.05f)
+                                drawBbBlock(cell.color, cx - g.cell * sc / 2f, y + g.cell - g.cell * sc,
+                                    g.cell * sc, 0f, texture, fade)
+                            }
+                            3 -> { // EVAPORATE: drifts up with a wobble
+                                val wob = kotlin.math.sin(t * 6.28f + cell.col) * 6f
+                                drawBbBlock(cell.color, x + wob, y - t * 60f, g.cell, 0f, texture, fade)
+                            }
+                            else -> { // VANISH: pops up then fades
+                                val sc = 1f + 0.25f * kotlin.math.sin(t * Math.PI.toFloat())
+                                drawBbBlock(cell.color, cx - g.cell * sc / 2f, cy - g.cell * sc / 2f,
+                                    g.cell * sc, 0f, texture, fade)
+                            }
+                        }
                     }
                 }
+
                 // floating score popup
                 val layout = textMeasurer.measure(
                     "+" + (seed.lines * BlockBlastSpec.POINTS_PER_LINE),
@@ -354,8 +419,27 @@ fun BlockBlastGameScreen(
                         popupXAvg - layout.size.width / 2f,
                         popupYAvg - layout.size.height / 2f - t * 90f
                     ),
-                    alpha = (1f - t).coerceIn(0f, 1f)
+                    alpha = fade
                 )
+
+                // coins fly up to the coin chip (reference bonus-particle feel)
+                val nCoins = seed.lines * 2
+                for (i in 0 until nCoins) {
+                    val delay = hash01(i, seed.lines, 3) * 0.3f
+                    val ct = if (t <= delay) 0f else ((t - delay) / (1f - delay)).coerceIn(0f, 1f)
+                    val sx0 = popupXAvg + (hash01(i, 1, 5) - 0.5f) * 90f
+                    val sy0 = popupYAvg + (hash01(i, 2, 6) - 0.5f) * 40f
+                    val targetX = size.width - 24f
+                    val px = sx0 + (targetX - sx0) * ct
+                    val py = sy0 - (sy0 + 24f) * ct
+                    if (ct > 0f) {
+                        drawCircle(
+                            color = BbGold.copy(alpha = (1f - ct * 0.2f)),
+                            radius = g.cell * 0.16f,
+                            center = Offset(px, py)
+                        )
+                    }
+                }
             }
 
             // ---- dragged piece follows the finger ----
@@ -363,7 +447,7 @@ fun BlockBlastGameScreen(
                 val c = g.cell * pickupAnim.value
                 val w = piece.cols * c
                 val h = piece.rows * c
-                drawPiece(piece, dragPos.x - w / 2f, dragPos.y - h / 2f, w, h, c)
+                drawPiece(piece, dragPos.x - w / 2f, dragPos.y - h / 2f, w, h, c, texture)
             }
         }
 
@@ -461,7 +545,8 @@ private fun geometry(widthPx: Float, heightPx: Float): GameGeometry {
 // ----------------------------------------------------------------
 private fun DrawScope.drawPiece(
     piece: BlockPiece,
-    x: Float, y: Float, boxW: Float, boxH: Float, cellPx: Float
+    x: Float, y: Float, boxW: Float, boxH: Float, cellPx: Float,
+    texture: ImageBitmap? = null
 ) {
     val w = piece.cols * cellPx
     val h = piece.rows * cellPx
@@ -470,14 +555,31 @@ private fun DrawScope.drawPiece(
     for (r in 0 until piece.rows) {
         for (c in 0 until piece.cols) {
             if (piece.shape[r][c] == 1) {
-                drawBbBlock(piece.color, ox + c * cellPx, oy + r * cellPx, cellPx - 2f, 0f)
+                drawBbBlock(piece.color, ox + c * cellPx, oy + r * cellPx, cellPx - 2f, 0f, texture)
             }
         }
     }
 }
 
-/** Glossy 3D block like the real game: dark bottom edge, main face, glossy top. */
-private fun DrawScope.drawBbBlock(color: Int, x: Float, y: Float, cell: Float, flashAlpha: Float) {
+/** Glossy 3D block like the real game: dark bottom edge, main face, glossy top.
+ *  When a reference texture is active the texture is multiply-tinted
+ *  with the piece color instead. */
+private fun DrawScope.drawBbBlock(
+    color: Int, x: Float, y: Float, cell: Float, flashAlpha: Float,
+    texture: ImageBitmap? = null, alpha: Float = 1f
+) {
+    if (texture != null) {
+        drawImage(
+            image = texture,
+            srcOffset = IntOffset.Zero,
+            srcSize = IntSize(texture.width, texture.height),
+            dstOffset = IntOffset(x.toInt(), y.toInt()),
+            dstSize = IntSize(cell.toInt().coerceAtLeast(1), cell.toInt().coerceAtLeast(1)),
+            alpha = alpha,
+            colorFilter = ColorFilter.tint(Color(color.toLong() or 0xFF000000L), BlendMode.Multiply)
+        )
+        return
+    }
     val c = Color(color.toLong() or 0xFF000000L)
     val corner = CornerRadius(cell * 0.16f, cell * 0.16f)
     val edge = maxOf(1.5f, cell * 0.10f)

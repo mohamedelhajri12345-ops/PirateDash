@@ -52,6 +52,46 @@ object BlockBlastSpec {
     val COLORS: List<Int>
         get() = SKINS[activeSkinId].colors
 
+    /**
+     * Cell styles — texture cell skins ported from the owner's
+     * reference package (96x96 tintable cell textures). Id 0 keeps
+     * the current glossy flat look; 1..10 are the reference textures.
+     */
+    data class CellSkin(val id: Int, val name: String)
+
+    val CELL_SKINS = listOf(
+        CellSkin(0, "Glossy"),
+        CellSkin(1, "Basic"),
+        CellSkin(2, "Bubble"),
+        CellSkin(3, "Bulb"),
+        CellSkin(4, "Circle"),
+        CellSkin(5, "Drop"),
+        CellSkin(6, "Ghost"),
+        CellSkin(7, "Grass"),
+        CellSkin(8, "Leaf"),
+        CellSkin(9, "Snowflake"),
+        CellSkin(10, "Sun")
+    )
+
+    @Volatile var activeCellSkinId: Int = 0
+
+    /**
+     * Line-clear visual effects, ported 1:1 from the reference
+     * package's effect factories (Explode/Spin/Waterdrop/
+     * Evaporate/Vanish) — each with its own SFX.
+     */
+    data class ClearEffect(val id: Int, val name: String)
+
+    val CLEAR_EFFECTS = listOf(
+        ClearEffect(0, "Explode"),
+        ClearEffect(1, "Spin"),
+        ClearEffect(2, "Waterdrop"),
+        ClearEffect(3, "Evaporate"),
+        ClearEffect(4, "Vanish")
+    )
+
+    @Volatile var activeClearEffectId: Int = 0
+
     /** The 26 shapes, exactly as in the original file (1 = filled). */
     val SHAPES: List<List<IntArray>> = listOf(
         listOf(intArrayOf(1)),

@@ -28,6 +28,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.mohamedelhajri.starpuzzle.R
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.BlockBlastMissions
 import com.mohamedelhajri.starpuzzle.core.BlockBlastSpec
@@ -41,9 +47,19 @@ import com.mohamedelhajri.starpuzzle.core.BlockBlastSpec
 fun BlockBlastShopScreen(
     soundManager: SoundManager,
     onSkinSelected: (Int) -> Unit,
+    onCellSkinSelected: (Int) -> Unit,
+    onClearEffectSelected: (Int) -> Unit,
     onBack: () -> Unit
 ) {
     var selectedSkin by remember { mutableIntStateOf(BlockBlastSpec.activeSkinId) }
+    var selectedCellSkin by remember { mutableIntStateOf(BlockBlastSpec.activeCellSkinId) }
+    var selectedEffect by remember { mutableIntStateOf(BlockBlastSpec.activeClearEffectId) }
+    val cellTextureRes = mapOf(
+        1 to R.drawable.bb_cell_basic, 2 to R.drawable.bb_cell_bubble, 3 to R.drawable.bb_cell_bulb,
+        4 to R.drawable.bb_cell_circle, 5 to R.drawable.bb_cell_drop, 6 to R.drawable.bb_cell_ghost,
+        7 to R.drawable.bb_cell_grass, 8 to R.drawable.bb_cell_leaf, 9 to R.drawable.bb_cell_snowflake,
+        10 to R.drawable.bb_cell_sun
+    )
 
     Column(
         modifier = Modifier
@@ -130,6 +146,137 @@ fun BlockBlastShopScreen(
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 13.sp
                 )
+            }
+        }
+
+        // ---- CELL STYLE (reference package textures) ----
+        Spacer(Modifier.height(20.dp))
+        Text(
+            "CELL STYLE",
+            color = BbGold,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 15.sp,
+            letterSpacing = 2.sp,
+            modifier = Modifier.align(Alignment.Start)
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BlockBlastSpec.CELL_SKINS.take(6).forEach { skin ->
+                val isSelected = skin.id == selectedCellSkin
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .background(
+                            BbPanel,
+                            RoundedCornerShape(12.dp)
+                        )
+                        .border(
+                            2.dp,
+                            if (isSelected) BbGold else Color.Transparent,
+                            RoundedCornerShape(12.dp)
+                        )
+                        .clickable {
+                            selectedCellSkin = skin.id
+                            BlockBlastSpec.activeCellSkinId = skin.id
+                            soundManager.play(SoundManager.Sfx.CONFIRM)
+                            onCellSkinSelected(skin.id)
+                        }
+                        .padding(6.dp)
+                ) {
+                    if (skin.id == 0) {
+                        Box(
+                            Modifier
+                                .size(34.dp)
+                                .background(Color(0xFF4D7CFE), RoundedCornerShape(8.dp))
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(cellTextureRes[skin.id]!!),
+                            contentDescription = skin.name,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(34.dp),
+                            colorFilter = ColorFilter.tint(Color(0xFF4D7CFE), BlendMode.Multiply)
+                        )
+                    }
+                    Text(skin.name, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+            BlockBlastSpec.CELL_SKINS.drop(6).forEach { skin ->
+                val isSelected = skin.id == selectedCellSkin
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .background(BbPanel, RoundedCornerShape(12.dp))
+                        .border(
+                            2.dp,
+                            if (isSelected) BbGold else Color.Transparent,
+                            RoundedCornerShape(12.dp)
+                        )
+                        .clickable {
+                            selectedCellSkin = skin.id
+                            BlockBlastSpec.activeCellSkinId = skin.id
+                            soundManager.play(SoundManager.Sfx.CONFIRM)
+                            onCellSkinSelected(skin.id)
+                        }
+                        .padding(6.dp)
+                ) {
+                    Image(
+                        painter = painterResource(cellTextureRes[skin.id]!!),
+                        contentDescription = skin.name,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(34.dp),
+                        colorFilter = ColorFilter.tint(Color(0xFF4D7CFE), BlendMode.Multiply)
+                    )
+                    Text(skin.name, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // ---- CLEAR EFFECT (reference package effect factories) ----
+        Spacer(Modifier.height(20.dp))
+        Text(
+            "CLEAR EFFECT",
+            color = BbGold,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 15.sp,
+            letterSpacing = 2.sp,
+            modifier = Modifier.align(Alignment.Start)
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            BlockBlastSpec.CLEAR_EFFECTS.forEach { effect ->
+                val isSelected = effect.id == selectedEffect
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .background(BbPanel, RoundedCornerShape(12.dp))
+                        .border(
+                            2.dp,
+                            if (isSelected) BbGold else Color.Transparent,
+                            RoundedCornerShape(12.dp)
+                        )
+                        .clickable {
+                            selectedEffect = effect.id
+                            BlockBlastSpec.activeClearEffectId = effect.id
+                            soundManager.play(SoundManager.Sfx.CONFIRM)
+                            onClearEffectSelected(effect.id)
+                        }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        when (effect.id) {
+                            0 -> "\uD83D\uDCA5"
+                            1 -> "\uD83C\uDF00"
+                            2 -> "\uD83D\uDCA7"
+                            3 -> "\u2601\uFE0F"
+                            else -> "\u2728"
+                        },
+                        fontSize = 18.sp
+                    )
+                    Text(effect.name, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
 
