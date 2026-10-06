@@ -86,6 +86,27 @@ fun DrawScope.drawMaterial(
     val cornerRadius = w * spec.cornerRadiusFraction.coerceIn(0.01f, 0.45f)
     val r = CornerRadius(cornerRadius, cornerRadius)
 
+    // ── BLOCK BLAST STYLE (classic palette skins, reference drawGrid) ──
+    // v8.0.0: when a classic palette (not a material skin) is active, render
+    // cells exactly like the owner's reference clone: flat color + a white
+    // highlight over the top half + rounded corners. Material skins keep
+    // their full material rendering below.
+    if (SkinState.active < 20) {
+        drawRoundRect(
+            color = spec.baseColor.copy(alpha = spec.baseColor.alpha * effectiveAlpha),
+            topLeft = topLeft,
+            size = size,
+            cornerRadius = r
+        )
+        drawRoundRect(
+            color = Color.White.copy(alpha = 0.16f * effectiveAlpha),
+            topLeft = topLeft,
+            size = Size(w, h * 0.5f),
+            cornerRadius = CornerRadius(r.x, 0f)
+        )
+        return
+    }
+
     // ── PASS 1: DROP SHADOW ──
     if (spec.shadowAlpha > 0f) {
         val shadowOffsetY = h * 0.08f

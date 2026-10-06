@@ -2,6 +2,12 @@ package com.mohamedelhajri.starpuzzle.core
 
 // A playable piece: a shape of filled cells plus a color.
 // Special power-up pieces are 1x1 and carry no color (SPECIAL_* ids).
+//
+// v8.0.0 Block Blast edition: the tray now draws from the 26-shape
+// Block Blast catalog (ported 1:1 from the owner's reference clone),
+// with the color chosen independently of the shape, exactly like the
+// reference game. Colors stay in 0..8 so every material skin keeps
+// working unchanged.
 class Piece private constructor(
     val colorIndex: Int,
     val cellCols: Int,
@@ -11,7 +17,6 @@ class Piece private constructor(
 ) {
     companion object {
         // Contract: the UI palette MUST provide exactly this many colors.
-        // Piece shapes are indexed 0..8 and each shape carries its own color.
         const val PIECE_COLOR_COUNT = 9
 
         const val SPECIAL_STAR = 100
@@ -20,7 +25,46 @@ class Piece private constructor(
 
         private const val SPECIAL_CHANCE = 5
 
-        // The 9 classic shapes: 3 squares, 4 lines, 2 Ls
+        // ------------------------------------------------------------------
+        // The 26 Block Blast shapes, ported 1:1 from the owner's reference
+        // clone (block-blast-clone/game.js SHAPES). '1' = filled cell.
+        // ------------------------------------------------------------------
+        private fun grid(vararg rows: String): Array<BooleanArray> =
+            Array(rows.size) { r -> BooleanArray(rows[r].length) { c -> rows[r][c] == '1' } }
+
+        private val BB_SHAPES: Array<Array<BooleanArray>> = arrayOf(
+            grid("1"),                              // 0: 1x1
+            grid("11"),                            // 1: line 2
+            grid("111"),                           // 2: line 3
+            grid("1111"),                          // 3: line 4
+            grid("11111"),                         // 4: line 5
+            grid("1", "1"),                        // 5: column 2
+            grid("1", "1", "1"),                  // 6: column 3
+            grid("1", "1", "1", "1"),             // 7: column 4
+            grid("1", "1", "1", "1", "1"),       // 8: column 5
+            grid("11", "11"),                     // 9: square 2x2
+            grid("111", "111", "111"),            // 10: square 3x3
+            grid("10", "10", "11"),               // 11: L right
+            grid("01", "01", "11"),               // 12: L left
+            grid("111", "010"),                   // 13: T
+            grid("011", "110"),                   // 14: S
+            grid("110", "011"),                   // 15: Z
+            grid("10", "11"),                     // 16: corner
+            grid("01", "11"),                     // 17: corner
+            grid("11", "10"),                     // 18: corner
+            grid("11", "01"),                     // 19: corner
+            grid("111", "100"),                   // 20: L pentomino
+            grid("111", "001"),                   // 21: L pentomino
+            grid("100", "111"),                   // 22: L pentomino
+            grid("001", "111"),                   // 23: L pentomino
+            grid("11", "11", "11"),               // 24: block 2x3
+            grid("111", "111")                    // 25: block 3x2
+        )
+
+        // ------------------------------------------------------------------
+        // Random piece: Block Blast catalog + independent color, plus the
+        // owner's power-up specials (star / bomb / lightning).
+        // ------------------------------------------------------------------
         fun random(specialChance: Int = SPECIAL_CHANCE, rng: java.util.Random = java.util.Random()): Piece {
             if (rng.nextInt(100) < specialChance) {
                 return when (rng.nextInt(3)) {
@@ -29,12 +73,22 @@ class Piece private constructor(
                     else -> special(SPECIAL_LIGHTNING)
                 }
             }
-            return normal(rng.nextInt(9), rng.nextInt(4), rng)
+            val shape = BB_SHAPES[rng.nextInt(BB_SHAPES.size)]
+            val color = rng.nextInt(PIECE_COLOR_COUNT)
+            return Piece(
+                colorIndex = color,
+                cellCols = shape[0].size,
+                cellRows = shape.size,
+                rotation = 0,
+                shape = shape.map { it.clone() }.toTypedArray()
+            )
         }
 
         fun special(specialColorIndex: Int): Piece =
             Piece(specialColorIndex, 1, 1, 0, arrayOf(booleanArrayOf(true)))
 
+        // Legacy constructor kept for the old 9-shape catalog; still used by
+        // unit tests and by code that builds pieces from level definitions.
         fun normal(colorIndex: Int, rotateCount: Int, rng: java.util.Random = java.util.Random()): Piece {
             var cols: Int; var rows: Int
             when (colorIndex) {
@@ -66,13 +120,10 @@ class Piece private constructor(
                 in 3..6 -> if (rows == 1) for (j in 0 until cols) shape[0][j] = true
                             else for (i in 0 until rows) shape[i][0] = true
                 else -> { // L shapes: 7 = L-tetromino in a 2x3 box, 8 = L in a 3x3 box
-                    // Build in the FULL bounding box, then rotate the whole grid;
-                    // rotateCW swaps the dimensions itself, so the shape always
-                    // exactly matches the declared cols/rows (no index can escape)
                     var g = Array(3) { BooleanArray(if (colorIndex == 7) 2 else 3) }
-                    for (i in 0 until 3) g[i][0] = true   // full left column
-                    g[0][1] = true                         // corner cell
-                    if (colorIndex == 8) g[0][2] = true    // wider foot for the big L
+                    for (i in 0 until 3) g[i][0] = true
+                    g[0][1] = true
+                    if (colorIndex == 8) g[0][2] = true
                     repeat(rotateCount and 3) { g = rotateCW(g) }
                     require(g.size == rows && g[0].size == cols) { "L shape/box mismatch" }
                     for (i in 0 until rows) for (j in 0 until cols) shape[i][j] = g[i][j]

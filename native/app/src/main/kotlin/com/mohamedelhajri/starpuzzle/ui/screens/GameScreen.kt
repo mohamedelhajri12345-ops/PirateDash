@@ -846,11 +846,11 @@ private fun BoardCanvas(
         withTransform({ translate(particles.shakeOffsetX, particles.shakeOffsetY) }) {
         val n = session.board.size
         val cell = size.width / n
-        val gap = cell * 0.08f
-        val radius = CornerRadius(cell * 0.22f)
+        val gap = cell * 0.09f
+        val radius = CornerRadius(cell * 0.14f)
 
         drawRoundRect(
-            color = Color(0xFF292929),
+            color = Color(0xFF1E1E38),
             cornerRadius = CornerRadius(cell * 0.5f),
             size = Size(size.width, size.height)
         )
@@ -915,7 +915,7 @@ private fun BoardCanvas(
         for (y in 0 until n)
             for (x in 0 until n) {
                 drawRoundRect(
-                    color = Color(0x14FFFFFF),
+                    color = Color(0xFF2A2A4A),
                     topLeft = Offset(x * cell + gap / 2, y * cell + gap / 2),
                     size = Size(cell - gap, cell - gap),
                     cornerRadius = radius

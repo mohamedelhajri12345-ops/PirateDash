@@ -7,7 +7,7 @@ package com.mohamedelhajri.starpuzzle.core
 //  - power-ups act on the TRUE landing cell recorded by putPiece, never on
 //    a re-derived screen position
 //  - every clear helper clamps its target: no index can leave the grid
-class GameBoard(val size: Int = 10) {
+class GameBoard(val size: Int = 8) {
 
     private val cells: Array<IntArray> = Array(size) { IntArray(size) { -1 } }
 

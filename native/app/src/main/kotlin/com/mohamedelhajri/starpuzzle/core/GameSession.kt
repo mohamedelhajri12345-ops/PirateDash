@@ -179,7 +179,7 @@ class GameSession(
         val clear = board.clearComplete()
         val lines = clear.lines
         linesCleared += lines
-        points += lines * 10
+        points += lines * 16
 
         // -- cleanup objective: dirt cells consumed by lines or power-ups
         if (dirtRemaining.isNotEmpty()) {

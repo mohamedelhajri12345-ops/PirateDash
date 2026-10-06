@@ -16,10 +16,10 @@ object SkinState {
 }
 
 val PieceSkins = listOf(
-    // Ported 1:1 from the reference game's Dark theme cell palette
-    PieceSkin("STARLIGHT", listOf(
-        Color(0xFF7931BF), Color(0xFF4C87AE), Color(0xFF3AA853),
-        Color(0xFF1E984D), Color(0xFF2E749B), Color(0xFFDB5500), Color(0xFFD88109), Color(0xFFD9294D), Color(0xFFAC342B)
+    // Block Blast reference palette (game.js COLORS) + one violet to fill the 9-slot contract
+    PieceSkin("BLAST", listOf(
+        Color(0xFFFF6B6B), Color(0xFF4ECDC4), Color(0xFF45B7D1),
+        Color(0xFF96CEB4), Color(0xFFFFEAA7), Color(0xFFDDA0DD), Color(0xFFFF8C42), Color(0xFF74B9FF), Color(0xFFA29BFE)
     )),
     PieceSkin("ROSE", listOf(
         Color(0xFFEF9A9A), Color(0xFFF48FB1), Color(0xFFEC407A),
