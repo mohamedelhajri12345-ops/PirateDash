@@ -423,12 +423,30 @@ class SoundManager(private val context: Context) {
     }
 
     /**
-     * Background music was REMOVED PERMANENTLY by owner request
-     * (Oct 6 2026): only SFX remain. This is now a no-op kept for
-     * API compatibility with older screens.
+     * Original synthesized soundtracks (master prompt §49) — 100%
+     * generated in-house, loopable and non-fatiguing. Replaces the
+     * old removed third-party track.
      */
-    fun startMusic() {
-        // intentionally empty — no background music in Star Puzzle
+    @Volatile private var currentTrack: Int = -1
+
+    fun startMusic() = playMusic(R.raw.menu_theme)
+
+    /** Plays an original looping soundtrack (menu_theme / game_theme). */
+    fun playMusic(resId: Int) {
+        if (!musicEnabled) return
+        synchronized(bgmLock) {
+            if (currentTrack == resId && bgm?.isPlaying == true) return
+            runCatching {
+                requestAudioFocus()
+                bgm?.release()
+                bgm = MediaPlayer.create(context, resId)?.apply {
+                    isLooping = true
+                    setVolume(BGM_BASE_VOLUME, BGM_BASE_VOLUME)
+                    start()
+                }
+                currentTrack = resId
+            }
+        }
     }
 
     private fun pauseBgm() {

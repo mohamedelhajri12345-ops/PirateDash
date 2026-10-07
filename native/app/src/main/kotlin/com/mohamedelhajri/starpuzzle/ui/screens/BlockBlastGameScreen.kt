@@ -32,6 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -59,6 +61,7 @@ import com.mohamedelhajri.starpuzzle.audio.SoundManager
 import com.mohamedelhajri.starpuzzle.core.BlockBlastCore
 import com.mohamedelhajri.starpuzzle.core.BlockBlastMissions
 import com.mohamedelhajri.starpuzzle.core.BlockBlastSpec
+import com.mohamedelhajri.starpuzzle.core.StarThemes
 import com.mohamedelhajri.starpuzzle.core.BlockPiece
 import com.mohamedelhajri.starpuzzle.core.ClearedCell
 import kotlinx.coroutines.launch
@@ -66,11 +69,12 @@ import kotlin.math.max
 import kotlin.math.min
 
 // Real Block Blast colors, measured from the official Play Store screenshots.
-val BbBackground = Color(0xFF242C54)
-val BbPanel = Color(0xFF2A3260)
-val BbCell = Color(0xFF1E264A)
+val BbBackground get() = StarThemes.active.bgTop
+val BbPanel get() = StarThemes.active.board
+val BbCell get() = StarThemes.active.cell
 val BbTextSoft = Color(0xFF9AA5CE)
 val BbGold = Color(0xFFFFD34E)
+val BbAccent get() = StarThemes.active.accent
 
 /** Best score & coins persistence, implemented by the host activity. */
 interface BbPersistence {
@@ -88,7 +92,10 @@ interface BbPersistence {
 /** Cleared cells kept for the burst effect; particle motion is
  *  derived deterministically from the cell coords, so no per-frame
  *  state is needed. */
-data class BurstSeed(val clearedCells: List<ClearedCell>, val lines: Int)
+data class BurstSeed(val clearedCells: List<ClearedCell>, val lines: Int, val gained: Int = 0)
+
+/** Lightning strike visual (§25). */
+data class LightningSeed(val cells: List<ClearedCell>, val isRow: Boolean, val index: Int)
 
 /** Deterministic pseudo-random from a cell + particle index (0..1). */
 private fun hash01(r: Int, c: Int, i: Int): Float {
@@ -108,7 +115,11 @@ private fun hash01(r: Int, c: Int, i: Int): Float {
 fun BlockBlastGameScreen(
     soundManager: SoundManager,
     persistence: BbPersistence,
-    onExit: () -> Unit,
+    onExit: (,
+    dailySeed: Long? = null,
+    dailyGoal: Int = 0,
+    onDailyComplete: () -> Unit = {}
+) -> Unit,
     onGameOver: (score: Int, best: Int, coinsEarned: Int) -> Unit
 ) {
     val core = remember { BlockBlastCore() }
@@ -149,6 +160,11 @@ fun BlockBlastGameScreen(
     var burstSeed by remember { mutableStateOf<BurstSeed?>(null) }
     val burstProgress = remember { Animatable(1f) }
     var comboCount by remember { mutableIntStateOf(0) }
+    var newBestShown by remember { mutableStateOf(false) }
+    var dailyDone by remember { mutableStateOf(false) }
+    var lightningSeed by remember { mutableStateOf<LightningSeed?>(null) }
+    val lightningProgress = remember { Animatable(1f) }
+    val newBestAnim = remember { Animatable(1f) }
     val comboAnim = remember { Animatable(0f) }
 
     var gameOverFired by remember { mutableStateOf(false) }
@@ -166,9 +182,9 @@ fun BlockBlastGameScreen(
             persistence.saveTotalLines(persistence.loadTotalLines() + result.clearedLines)
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             soundManager.play(SoundManager.Sfx.CLEAR)
-            if (result.clearedLines >= 2) {
+            if (result.comboStreak >= 2) {
                 soundManager.play(SoundManager.Sfx.COMBO)
-                comboCount = result.clearedLines
+                comboCount = result.comboStreak
                 scope.launch { comboAnim.snapTo(0f); comboAnim.animateTo(1f, tween(500)) }
             }
             soundManager.play(SoundManager.Sfx.COIN)
@@ -180,15 +196,25 @@ fun BlockBlastGameScreen(
                 4 -> soundManager.play(SoundManager.Sfx.EFFECT_VANISH)
                 else -> soundManager.play(SoundManager.Sfx.EFFECT_EXPLODE)
             }
-            burstSeed = BurstSeed(result.clearedCells, result.clearedLines)
+            burstSeed = BurstSeed(result.clearedCells, result.clearedLines, result.gained)
             scope.launch { burstProgress.snapTo(0f) }
         } else {
             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             soundManager.play(SoundManager.Sfx.PLACE)
         }
+        if (!newBestShown && best > 0 && score > best) {
+            newBestShown = true
+            soundManager.play(SoundManager.Sfx.HIGH_SCORE)
+            scope.launch { newBestAnim.snapTo(0f); newBestAnim.animateTo(1f, tween(700)) }
+        }
         if (score > best) {
             best = score
             persistence.saveBest(best)
+        }
+        if (dailyGoal > 0 && !dailyDone && score >= dailyGoal) {
+            dailyDone = true
+            soundManager.play(SoundManager.Sfx.COMPLETE)
+            onDailyComplete()
         }
         if (core.isGameOver && !gameOverFired) {
             gameOverFired = true
@@ -201,6 +227,8 @@ fun BlockBlastGameScreen(
         best = persistence.loadBest()
         coins = persistence.loadCoins()
         gems = persistence.loadGems()
+        dailySeed?.let { core.seedRng(it) }
+        soundManager.playMusic(com.mohamedelhajri.starpuzzle.R.raw.game_theme)
         core.reset()
         score = 0
         coinsEarned = 0
@@ -293,6 +321,11 @@ fun BlockBlastGameScreen(
                             val lifted = Offset(dragPos.x, dragPos.y - g.cell * 1.6f)
                             val rc = g.boardAnchor(lifted, piece, core)
                             if (rc != null) commitPlacement(draggingIndex, rc.first, rc.second)
+                            else {
+                                // invalid release: audible + tactile rejection (§9)
+                                soundManager.play(SoundManager.Sfx.INVALID)
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
                             draggingIndex = -1
                         },
                         onDragCancel = { draggingIndex = -1 }
@@ -453,7 +486,7 @@ fun BlockBlastGameScreen(
 
                 // floating score popup
                 val layout = textMeasurer.measure(
-                    "+" + (seed.lines * BlockBlastSpec.POINTS_PER_LINE),
+                    "+" + seed.gained,
                     TextStyle(fontSize = (g.cell * 0.9f).toSp(), fontWeight = FontWeight.Black)
                 )
                 drawText(
@@ -482,6 +515,69 @@ fun BlockBlastGameScreen(
                             center = Offset(px, py)
                         )
                     }
+                }
+            }
+
+            // ---- LIGHTNING strike VFX (§25): flash + branching energy ----
+            lightningSeed?.let { ls ->
+                val t = lightningProgress.value
+                if (t < 1f) {
+                    val alpha = (1f - t)
+                    val flash = Color.White.copy(alpha = alpha * 0.45f)
+                    if (ls.isRow) {
+                        val y = g.boardY + g.pad + ls.index * (g.cell + g.gap) + g.cell / 2f
+                        drawRoundRect(
+                            color = flash,
+                            topLeft = Offset(g.boardX + g.pad, y - g.cell / 2f),
+                            size = Size(g.boardSide - g.pad * 2f, g.cell),
+                            cornerRadius = CornerRadius(g.cell * 0.16f)
+                        )
+                        val path = Path()
+                        var px = g.boardX + g.pad
+                        path.moveTo(px, y)
+                        while (px < g.boardX + g.boardSide - g.pad) {
+                            px += (g.boardSide - g.pad * 2f) / 7f
+                            val jitter = if ((px.toInt() / 31) % 2 == 0) -g.cell * 0.30f else g.cell * 0.30f
+                            path.lineTo(px, y + jitter)
+                        }
+                        drawPath(path, BbAccent.copy(alpha = alpha), style = Stroke(width = g.cell * 0.12f))
+                        drawPath(path, Color.White.copy(alpha = alpha * 0.8f), style = Stroke(width = g.cell * 0.05f))
+                    } else {
+                        val x = g.boardX + g.pad + ls.index * (g.cell + g.gap) + g.cell / 2f
+                        drawRoundRect(
+                            color = flash,
+                            topLeft = Offset(x - g.cell / 2f, g.boardY + g.pad),
+                            size = Size(g.cell, g.boardSide - g.pad * 2f),
+                            cornerRadius = CornerRadius(g.cell * 0.16f)
+                        )
+                        val path = Path()
+                        var py = g.boardY + g.pad
+                        path.moveTo(x, py)
+                        while (py < g.boardY + g.boardSide - g.pad) {
+                            py += (g.boardSide - g.pad * 2f) / 7f
+                            val jitter = if ((py.toInt() / 31) % 2 == 0) -g.cell * 0.30f else g.cell * 0.30f
+                            path.lineTo(x + jitter, py)
+                        }
+                        drawPath(path, BbAccent.copy(alpha = alpha), style = Stroke(width = g.cell * 0.12f))
+                        drawPath(path, Color.White.copy(alpha = alpha * 0.8f), style = Stroke(width = g.cell * 0.05f))
+                    }
+                }
+            }
+
+            // ---- BOMB shockwave ring (§23) during any burst ----
+            burstSeed?.let { seed ->
+                val t = burstProgress.value
+                if (t < 1f && seed.cells.isNotEmpty()) {
+                    val avg = seed.cells.fold(Offset.Zero) { acc, c ->
+                        Offset(acc.x + g.boardX + g.pad + c.col * (g.cell + g.gap) + g.cell / 2f,
+                               acc.y + g.boardY + g.pad + c.row * (g.cell + g.gap) + g.cell / 2f)
+                    }.div(seed.cells.size.toFloat())
+                    drawCircle(
+                        color = BbAccent.copy(alpha = (1f - t) * 0.7f),
+                        radius = g.cell * (0.5f + t * 5f),
+                        center = avg,
+                        style = Stroke(width = g.cell * 0.18f * (1f - t))
+                    )
                 }
             }
 
@@ -537,6 +633,30 @@ fun BlockBlastGameScreen(
                 }
             }
             Spacer(Modifier.width(10.dp))
+            BbGoldPill("LIGHTNING \u26A1${BlockBlastSpec.LIGHTNING_COST_GEMS}") {
+                if (draggingIndex < 0 && gems >= BlockBlastSpec.LIGHTNING_COST_GEMS) {
+                    val hasAnyBlock = core.grid.any { row -> row.any { it != null } }
+                    if (hasAnyBlock) {
+                        gems -= BlockBlastSpec.LIGHTNING_COST_GEMS
+                        persistence.saveGems(gems)
+                        val (cells, isRow, idx) = core.useLightning()
+                        score = core.score
+                        version++
+                        lightningSeed = LightningSeed(cells, isRow, idx)
+                        burstSeed = BurstSeed(cells, 1, cells.size * 12)
+                        scope.launch { burstProgress.snapTo(0f) }
+                        scope.launch { lightningProgress.snapTo(0f); lightningProgress.animateTo(1f, tween(450)) }
+                        soundManager.play(SoundManager.Sfx.BOMB)
+                        soundManager.play(SoundManager.Sfx.EFFECT_SPIN)
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    } else {
+                        soundManager.play(SoundManager.Sfx.INVALID)
+                    }
+                } else {
+                    soundManager.play(SoundManager.Sfx.INVALID)
+                }
+            }
+            Spacer(Modifier.width(10.dp))
             BbGoldPill("NEW PIECES") {
                 if (draggingIndex < 0) {
                     core.rerollTray()
@@ -549,11 +669,26 @@ fun BlockBlastGameScreen(
         }
     }
 
+    // ---------------- NEW BEST celebration (§18) ----------------
+    if (newBestAnim.value < 1f) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            Text(
+                "\u2B50 NEW BEST! \u2B50",
+                color = BbGold,
+                fontSize = (20 + 8 * (1f - newBestAnim.value)).sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier
+                    .padding(top = 60.dp)
+                    .alpha(newBestAnim.value.coerceIn(0f, 1f))
+            )
+        }
+    }
+
     // ---------------- COMBO BANNER overlay ----------------
     if (comboCount > 0 && comboAnim.value < 1f) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                "COMBO x$comboCount",
+                "COMBO \u00D7$comboCount",
                 color = BbGold,
                 fontSize = (34 + 10 * (1f - comboAnim.value)).sp,
                 fontWeight = FontWeight.Black,

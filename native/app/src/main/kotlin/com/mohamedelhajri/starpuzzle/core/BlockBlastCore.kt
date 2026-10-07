@@ -16,7 +16,11 @@ package com.mohamedelhajri.starpuzzle.core
  */
 object BlockBlastSpec {
     const val SIZE = 8
-    const val POINTS_PER_LINE = 16 // 8 cells x 2
+    // Scoring (documented formula, master prompt §17):
+    //   lines: 1->100, 2->300, 3->600, 4+->1000 base points
+    //   combo streak bonus: base * (1 + 0.25 * (streak-1)), streak capped at 8
+    //   total gained = piece cells + round(base * multiplier)
+    val LINE_SCORES = intArrayOf(0, 100, 300, 600, 1000)
     const val TRAY_SIZE = 3
     const val COINS_PER_LINE = 5
 
@@ -24,6 +28,10 @@ object BlockBlastSpec {
     const val GEMS_PER_LEVEL_UP = 0 // reserved
     const val RETRY_COST_GEMS = 15
     const val BOOST_COST_GEMS = 25
+    const val LIGHTNING_COST_GEMS = 20
+
+    /** Reduced visual effects (accessibility, §55): skip heavy particles. */
+    var reducedFx = false
 
     /**
      * Vibrant Block Blast-style block skins (owner request, Oct 6 2026:
@@ -142,7 +150,11 @@ data class ClearedCell(val row: Int, val col: Int, val color: Int)
 data class PlaceResult(
     val cellsPlaced: Int,
     val clearedLines: Int,
-    val clearedCells: List<ClearedCell> = emptyList(),
+    val clearedCells: List<ClearedCell>,
+    val placedCells: List<ClearedCell>,
+    val gained: Int,
+    val comboStreak: Int
+),
     val placedCells: List<ClearedCell> = emptyList()
 ) {
     val scoreGained: Int get() = cellsPlaced + clearedLines * BlockBlastSpec.POINTS_PER_LINE
@@ -165,6 +177,10 @@ class BlockBlastCore {
 
     /** Lines cleared by the latest placement (0, 1, 2+ = combo). */
     var lastClearedLines = 0
+        private set
+
+    /** Consecutive-clearing placements streak (combo x2 starts at 2). */
+    var comboStreak = 0
         private set
 
     /** One-level undo snapshot captured right before each successful placement. */
@@ -232,7 +248,48 @@ class BlockBlastCore {
         return cleared
     }
 
+    /**
+     * LIGHTNING booster (§24): strikes the single fullest row or
+     * column. Target is calculated BEFORE the board mutates; every
+     * cell is collected into a unique list exactly once; indexes are
+     * always inside 0..7 so corners are safe. Returns (cells, isRow, index).
+     */
+    fun useLightning(): Triple<List<ClearedCell>, Boolean, Int> {
+        var bestIsRow = true
+        var bestIdx = 0
+        var bestCount = -1
+        for (r in 0 until BlockBlastSpec.SIZE) {
+            val n = (0 until BlockBlastSpec.SIZE).count { grid[r][it] != null }
+            if (n > bestCount) { bestCount = n; bestIdx = r; bestIsRow = true }
+        }
+        for (c in 0 until BlockBlastSpec.SIZE) {
+            val n = (0 until BlockBlastSpec.SIZE).count { grid[it][c] != null }
+            if (n > bestCount) { bestCount = n; bestIdx = c; bestIsRow = false }
+        }
+        val cells = mutableListOf<ClearedCell>()
+        if (bestIsRow) {
+            for (c in 0 until BlockBlastSpec.SIZE) {
+                grid[bestIdx][c]?.let { cells.add(ClearedCell(bestIdx, c, it)) }
+                grid[bestIdx][c] = null
+            }
+        } else {
+            for (r in 0 until BlockBlastSpec.SIZE) {
+                grid[r][bestIdx]?.let { cells.add(ClearedCell(r, bestIdx, it)) }
+                grid[r][bestIdx] = null
+            }
+        }
+        isGameOver = false
+        return Triple(cells, bestIsRow, bestIdx)
+    }
+
+    /** Deterministic seed for the daily challenge (§51). */
+    fun seedRng(seed: Long) {
+        val rng = kotlin.random.Random(seed)
+        RandomSource.nextInt = { bound -> rng.nextInt(bound) }
+    }
+
     fun reset() {
+        comboStreak = 0
         snapshot = null
         for (r in grid.indices) java.util.Arrays.fill(grid[r], null)
         score = 0
@@ -256,11 +313,16 @@ class BlockBlastCore {
     }
 
     fun refillTray() {
-        tray = (0 until BlockBlastSpec.TRAY_SIZE).map {
-            BlockPiece(
-                shape = BlockBlastSpec.SHAPES[RandomSource.nextInt(BlockBlastSpec.SHAPES.size)],
-                color = BlockBlastSpec.COLORS[RandomSource.nextInt(BlockBlastSpec.COLORS.size)]
-            )
+        // Fairness (§5): retry a few times so the new tray contains at
+        // least one piece that fits the CURRENT board wherever possible.
+        repeat(6) {
+            tray = (0 until BlockBlastSpec.TRAY_SIZE).map {
+                BlockPiece(
+                    shape = BlockBlastSpec.SHAPES[RandomSource.nextInt(BlockBlastSpec.SHAPES.size)],
+                    color = BlockBlastSpec.COLORS[RandomSource.nextInt(BlockBlastSpec.COLORS.size)]
+                )
+            }
+            if (tray.any { it != null && fitsAnywhere(it) }) return
         }
     }
 
@@ -314,7 +376,15 @@ class BlockBlastCore {
         }
 
         val (cleared, clearedCells) = clearLines()
-        score += piece.cellCount + cleared * BlockBlastSpec.POINTS_PER_LINE
+        comboStreak = if (cleared > 0) comboStreak + 1 else 0
+        val base = when {
+            cleared <= 0 -> 0
+            cleared >= 4 -> BlockBlastSpec.LINE_SCORES[4]
+            else -> BlockBlastSpec.LINE_SCORES[cleared]
+        }
+        val multiplier = 1f + 0.25f * (comboStreak - 1).coerceIn(0, 7)
+        val gained = piece.cellCount + (if (cleared > 0) (base * multiplier).toInt() else 0)
+        score += gained
         lastClearedLines = cleared
 
         val newTray = tray.toMutableList()
@@ -323,7 +393,7 @@ class BlockBlastCore {
         if (tray.all { it == null }) refillTray()
 
         checkGameOver()
-        return PlaceResult(piece.cellCount, cleared, clearedCells, placedCells)
+        return PlaceResult(piece.cellCount, cleared, clearedCells, placedCells, gained, comboStreak)
     }
 
     private fun clearLines(): Pair<Int, List<ClearedCell>> {

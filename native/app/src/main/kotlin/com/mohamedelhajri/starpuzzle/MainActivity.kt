@@ -30,6 +30,8 @@ import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastGameOverScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastMenuScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastMissionsScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastSettingsScreen
+import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastThemesScreen
+import com.mohamedelhajri.starpuzzle.core.StarThemes
 import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastShopScreen
 import com.mohamedelhajri.starpuzzle.ui.theme.StarPuzzleTheme
 
@@ -46,6 +48,8 @@ sealed class BbScreen {
     data object Shop : BbScreen()
     data object Missions : BbScreen()
     data object Settings : BbScreen()
+    data object Themes : BbScreen()
+    data object DailyChallenge : BbScreen()
     data class GameOver(val score: Int, val best: Int, val coinsEarned: Int) : BbScreen()
 }
 
@@ -112,6 +116,8 @@ fun StarPuzzleApp() {
     remember {
         BlockBlastMissions.store = missionStore
         BlockBlastSpec.activeSkinId = store.loadSkin().coerceIn(0, BlockBlastSpec.SKINS.size - 1)
+        StarThemes.activeId = store.loadExtraInt("bb_theme", 0).coerceIn(0, StarThemes.ALL.size - 1)
+        BlockBlastSpec.reducedFx = store.loadExtraInt("bb_reduced_fx", 0) == 1
         // cell style & clear effect from the reference package (persisted)
         BlockBlastSpec.activeCellSkinId = store.loadExtraInt("bb_cell_skin", 0)
             .coerceIn(0, BlockBlastSpec.CELL_SKINS.size - 1)
@@ -188,11 +194,38 @@ fun StarPuzzleApp() {
                     onShop = { screen = BbScreen.Shop },
                     onMissions = { screen = BbScreen.Missions },
                     onSettings = { screen = BbScreen.Settings },
-                    onClaimDailyBonus = { claimDailyBonus() }
+                    onClaimDailyBonus = { claimDailyBonus() },
+                    onThemes = { screen = BbScreen.Themes },
+                    dailyChallengeDone = store.loadExtraInt("bb_daily_done", 0) == todayStamp(),
+                    onDailyChallenge = { screen = BbScreen.DailyChallenge }
                 )
                 is BbScreen.Game -> BlockBlastGameScreen(
                     soundManager = sound,
                     persistence = persistence,
+                    onExit = {
+                        refreshPersisted()
+                        screen = BbScreen.Menu
+                    },
+                    onGameOver = { s, b, earned ->
+                        refreshPersisted()
+                        screen = BbScreen.GameOver(s, b, earned)
+                    }
+                )
+                // Daily Challenge (§51): deterministic date-seeded game with a score goal.
+                is BbScreen.DailyChallenge -> BlockBlastGameScreen(
+                    soundManager = sound,
+                    persistence = persistence,
+                    dailySeed = dailySeed(),
+                    dailyGoal = dailyGoal(),
+                    onDailyComplete = {
+                        if (store.loadExtraInt("bb_daily_done", 0) != todayStamp()) {
+                            coins += 150
+                            gems += 3
+                            persistence.saveCoins(coins)
+                            persistence.saveGems(gems)
+                            store.saveExtraInt("bb_daily_done", todayStamp())
+                        }
+                    },
                     onExit = {
                         refreshPersisted()
                         screen = BbScreen.Menu
@@ -229,12 +262,28 @@ fun StarPuzzleApp() {
                     },
                     onBack = { screen = BbScreen.Menu }
                 )
+                is BbScreen.Themes -> BlockBlastThemesScreen(
+                    soundManager = sound,
+                    selectedId = StarThemes.activeId,
+                    onSelect = { id ->
+                        StarThemes.activeId = id
+                        store.saveExtraInt("bb_theme", id)
+                    },
+                    onBack = { screen = BbScreen.Menu }
+                )
                 is BbScreen.Settings -> BlockBlastSettingsScreen(
                     soundInitial = store.loadSound(),
                     hapticsInitial = store.loadHaptics(),
                     soundManager = sound,
                     onSoundChanged = { store.saveSound(it) },
                     onHapticsChanged = { store.saveHaptics(it) },
+                    musicInitial = store.loadMusic(),
+                    onMusicChanged = { store.saveMusic(it); sound.music(it) },
+                    reducedFxInitial = store.loadExtraInt("bb_reduced_fx", 0) == 1,
+                    onReducedFxChanged = {
+                        BlockBlastSpec.reducedFx = it
+                        store.saveExtraInt("bb_reduced_fx", if (it) 1 else 0)
+                    },
                     onBack = { screen = BbScreen.Menu }
                 )
                 is BbScreen.GameOver -> BlockBlastGameOverScreen(
@@ -242,7 +291,8 @@ fun StarPuzzleApp() {
                     best = current.best,
                     coins = coins,
                     onPlayAgain = { screen = BbScreen.Game },
-                    onMenu = { screen = BbScreen.Menu }
+                    onMenu = { screen = BbScreen.Menu },
+                    newBest = current.score >= current.best && current.score > 0
                 )
             }
         }
@@ -252,3 +302,19 @@ fun StarPuzzleApp() {
 /** Day stamp (days since epoch) for the daily-bonus cadence. */
 private fun todayStamp(): Int =
     (System.currentTimeMillis() / 86_400_000L).toInt()
+
+/** Deterministic daily-challenge seed from the calendar date (§51). */
+private fun dailySeed(): Long {
+    val cal = java.util.Calendar.getInstance()
+    val y = cal.get(java.util.Calendar.YEAR)
+    val m = cal.get(java.util.Calendar.MONTH) + 1
+    val d = cal.get(java.util.Calendar.DAY_OF_MONTH)
+    return y * 10_000L + m * 100L + d
+}
+
+/** Daily goal: stable per date, gently scaled by the day number. */
+private fun dailyGoal(): Int {
+    val cal = java.util.Calendar.getInstance()
+    val d = cal.get(java.util.Calendar.DAY_OF_MONTH)
+    return 1200 + (d % 12) * 150
+}

@@ -30,8 +30,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
+import com.mohamedelhajri.starpuzzle.core.StarThemes
 
-/** Settings screen matching the Main Menu's light pastel style. */
+/** Settings (master prompt §54): sound, music, haptics, reduced effects. */
 @Composable
 fun BlockBlastSettingsScreen(
     soundInitial: Boolean,
@@ -39,81 +40,101 @@ fun BlockBlastSettingsScreen(
     soundManager: SoundManager,
     onSoundChanged: (Boolean) -> Unit,
     onHapticsChanged: (Boolean) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    musicInitial: Boolean = true,
+    onMusicChanged: (Boolean) -> Unit = {},
+    reducedFxInitial: Boolean = false,
+    onReducedFxChanged: (Boolean) -> Unit = {}
 ) {
+    val theme = StarThemes.active
     var soundOn by remember { mutableStateOf(soundInitial) }
+    var musicOn by remember { mutableStateOf(musicInitial) }
     var hapticsOn by remember { mutableStateOf(hapticsInitial) }
+    var reducedFxOn by remember { mutableStateOf(reducedFxInitial) }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(BbMenuBgTop, BbMenuBgBot)))
+            .background(Brush.verticalGradient(listOf(theme.bgTop, theme.bgBottom)))
+            .padding(18.dp)
     ) {
-        Column(modifier = Modifier.fillMaxSize().padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(Color.White.copy(alpha = 0.85f), CircleShape)
-                        .clickable { onBack() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("\u2190", color = BbMenuNavy, fontWeight = FontWeight.Black, fontSize = 18.sp)
-                }
-                Text(
-                    "  SETTINGS",
-                    color = BbMenuNavy,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 22.sp
-                )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(Color.White.copy(alpha = 0.12f), CircleShape)
+                    .clickable { soundManager.play(SoundManager.Sfx.BACK); onBack() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("\u2190", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
             }
-
-            Spacer(Modifier.height(28.dp))
-
-            SettingRow("\uD83D\uDD0A", "Sound Effects", soundOn) {
-                soundOn = it
-                soundManager.enabled = it
-                onSoundChanged(it)
-                if (it) soundManager.play(SoundManager.Sfx.CONFIRM)
-            }
-            Spacer(Modifier.height(14.dp))
-            SettingRow("\uD83D\uDCF3", "Vibration", hapticsOn) {
-                hapticsOn = it
-                onHapticsChanged(it)
-                if (it) soundManager.play(SoundManager.Sfx.CONFIRM)
-            }
-
-            Spacer(Modifier.height(28.dp))
-            Text(
-                "Star Puzzle v8.4.0",
-                color = BbMenuNavy.copy(alpha = 0.5f),
-                fontSize = 12.sp
-            )
+            Text("  SETTINGS", color = Color.White, fontWeight = FontWeight.Black, fontSize = 22.sp)
         }
+
+        Spacer(Modifier.height(24.dp))
+
+        SettingRow("\uD83D\uDD0A", "Sound Effects", soundOn, theme.accent) {
+            soundOn = it
+            soundManager.enabled = it
+            onSoundChanged(it)
+            if (it) soundManager.play(SoundManager.Sfx.CONFIRM)
+        }
+        Spacer(Modifier.height(12.dp))
+        SettingRow("\uD83C\uDFB5", "Music", musicOn, theme.accent) {
+            musicOn = it
+            soundManager.musicEnabled = it
+            onMusicChanged(it)
+            if (it) soundManager.startMusic()
+        }
+        Spacer(Modifier.height(12.dp))
+        SettingRow("\uD83D\uDCF3", "Vibration", hapticsOn, theme.accent) {
+            hapticsOn = it
+            onHapticsChanged(it)
+            if (it) soundManager.play(SoundManager.Sfx.CONFIRM)
+        }
+        Spacer(Modifier.height(12.dp))
+        SettingRow("\u2728", "Reduced Effects", reducedFxOn, theme.accent) {
+            reducedFxOn = it
+            onReducedFxChanged(it)
+            soundManager.play(SoundManager.Sfx.CONFIRM)
+        }
+
+        Spacer(Modifier.height(26.dp))
+        Text(
+            "STAR PUZZLE \u2022 by RENDER \u2022 v8.5.0",
+            color = Color.White.copy(alpha = 0.45f),
+            fontSize = 12.sp
+        )
     }
 }
 
 @Composable
-private fun SettingRow(icon: String, label: String, value: Boolean, onToggle: (Boolean) -> Unit) {
+private fun SettingRow(
+    icon: String,
+    label: String,
+    value: Boolean,
+    accent: Color,
+    onToggle: (Boolean) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(3.dp, RoundedCornerShape(18.dp))
-            .background(Color.White.copy(alpha = 0.85f), RoundedCornerShape(18.dp))
+            .background(Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
             .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(icon, fontSize = 18.sp)
-            Text("  $label", color = BbMenuNavy, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+            Text("  $label", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
         }
         Box(
             modifier = Modifier
                 .width(50.dp)
                 .height(28.dp)
                 .background(
-                    if (value) BbMenuShop else Color(0xFFE0E0E0),
+                    if (value) accent else Color(0xFF3A3A4A),
                     RoundedCornerShape(14.dp)
                 )
                 .clickable { onToggle(!value) },
