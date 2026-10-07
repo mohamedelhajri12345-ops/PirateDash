@@ -47,7 +47,7 @@ fun BlockBlastSettingsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(MenuBgTop, MenuBgBottom)))
+            .background(Brush.verticalGradient(listOf(BbMenuBgTop, BbMenuBgBot)))
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -58,11 +58,11 @@ fun BlockBlastSettingsScreen(
                         .clickable { onBack() },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("\u2190", color = MenuNavy, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Text("\u2190", color = BbMenuNavy, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 }
                 Text(
                     "  SETTINGS",
-                    color = MenuNavy,
+                    color = BbMenuNavy,
                     fontWeight = FontWeight.Black,
                     fontSize = 22.sp
                 )
@@ -86,7 +86,7 @@ fun BlockBlastSettingsScreen(
             Spacer(Modifier.height(28.dp))
             Text(
                 "Star Puzzle v8.4.0",
-                color = MenuNavy.copy(alpha = 0.5f),
+                color = BbMenuNavy.copy(alpha = 0.5f),
                 fontSize = 12.sp
             )
         }
@@ -106,14 +106,14 @@ private fun SettingRow(icon: String, label: String, value: Boolean, onToggle: (B
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(icon, fontSize = 18.sp)
-            Text("  $label", color = MenuNavy, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+            Text("  $label", color = BbMenuNavy, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
         }
         Box(
             modifier = Modifier
                 .width(50.dp)
                 .height(28.dp)
                 .background(
-                    if (value) MenuShop else Color(0xFFE0E0E0),
+                    if (value) BbMenuShop else Color(0xFFE0E0E0),
                     RoundedCornerShape(14.dp)
                 )
                 .clickable { onToggle(!value) },

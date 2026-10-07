@@ -38,14 +38,14 @@ import com.mohamedelhajri.starpuzzle.audio.SoundManager
  * logo, title + subtitle, 4 full-width action buttons, daily-bonus
  * banner, version footer). Brand & colors are Star Puzzle's own.
  */
-val MenuBgTop = Color(0xFFBFEAF0)
-val MenuBgBottom = Color(0xFFD9C7F0)
-val MenuNavy = Color(0xFF2B2255)
-val MenuPlay = Color(0xFFFF6B4A)
-val MenuShop = Color(0xFF1FBFB2)
-val MenuMissions = Color(0xFF8B5CF6)
-val MenuSettings = Color(0xFF3B82F6)
-val MenuGold = Color(0xFFFFC93C)
+val BbMenuBgTop = Color(0xFFBFEAF0)
+val BbMenuBgBot = Color(0xFFD9C7F0)
+val BbMenuNavy = Color(0xFF2B2255)
+val BbMenuPlay = Color(0xFFFF6B4A)
+val BbMenuShop = Color(0xFF1FBFB2)
+val BbMenuMissions = Color(0xFF8B5CF6)
+val BbMenuSettings = Color(0xFF3B82F6)
+val BbMenuGold = Color(0xFFFFC93C)
 
 @Composable
 fun BlockBlastMenuScreen(
@@ -64,7 +64,7 @@ fun BlockBlastMenuScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(MenuBgTop, MenuBgBottom)))
+            .background(Brush.verticalGradient(listOf(BbMenuBgTop, BbMenuBgBot)))
     ) {
         // decorative floating puzzle-piece confetti, like the reference art
         Canvas(modifier = Modifier.fillMaxSize()) { drawMenuConfetti() }
@@ -88,7 +88,7 @@ fun BlockBlastMenuScreen(
                     Text("\u2B50", fontSize = 16.sp)
                     Text(
                         "  LEVEL $level",
-                        color = MenuNavy,
+                        color = BbMenuNavy,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 15.sp
                     )
@@ -112,13 +112,13 @@ fun BlockBlastMenuScreen(
                 Spacer(Modifier.height(14.dp))
                 Text(
                     "MAIN MENU",
-                    color = MenuNavy,
+                    color = BbMenuNavy,
                     fontWeight = FontWeight.Black,
                     fontSize = 28.sp
                 )
                 Text(
                     "Star Puzzle \u2022 Ready to Play!",
-                    color = MenuNavy.copy(alpha = 0.7f),
+                    color = BbMenuNavy.copy(alpha = 0.7f),
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(top = 2.dp)
@@ -126,22 +126,22 @@ fun BlockBlastMenuScreen(
 
                 Spacer(Modifier.height(26.dp))
 
-                MenuButton("Play", "\u25B6", MenuPlay) {
+                MenuButton("Play", "\u25B6", BbMenuPlay) {
                     soundManager.play(SoundManager.Sfx.START)
                     onPlay()
                 }
                 Spacer(Modifier.height(12.dp))
-                MenuButton("Shop", "\uD83D\uDED2", MenuShop) {
+                MenuButton("Shop", "\uD83D\uDED2", BbMenuShop) {
                     soundManager.play(SoundManager.Sfx.CONFIRM)
                     onShop()
                 }
                 Spacer(Modifier.height(12.dp))
-                MenuButton("Missions", "\u2705", MenuMissions) {
+                MenuButton("Missions", "\u2705", BbMenuMissions) {
                     soundManager.play(SoundManager.Sfx.CONFIRM)
                     onMissions()
                 }
                 Spacer(Modifier.height(12.dp))
-                MenuButton("Settings", "\u2699", MenuSettings) {
+                MenuButton("Settings", "\u2699", BbMenuSettings) {
                     soundManager.play(SoundManager.Sfx.CONFIRM)
                     onSettings()
                 }
@@ -149,7 +149,7 @@ fun BlockBlastMenuScreen(
                 Spacer(Modifier.height(16.dp))
                 Text(
                     "BEST $best",
-                    color = MenuNavy.copy(alpha = 0.55f),
+                    color = BbMenuNavy.copy(alpha = 0.55f),
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 13.sp
                 )
@@ -161,7 +161,7 @@ fun BlockBlastMenuScreen(
                     .fillMaxWidth()
                     .shadow(4.dp, RoundedCornerShape(18.dp))
                     .background(
-                        Brush.horizontalGradient(listOf(MenuGold, Color(0xFFFFA726))),
+                        Brush.horizontalGradient(listOf(BbMenuGold, Color(0xFFFFA726))),
                         RoundedCornerShape(18.dp)
                     )
                     .clickable(enabled = dailyBonusAvailable) {
@@ -183,7 +183,7 @@ fun BlockBlastMenuScreen(
             Spacer(Modifier.height(8.dp))
             Text(
                 "Star Puzzle v8.4.0 \u2022 No internet required",
-                color = MenuNavy.copy(alpha = 0.45f),
+                color = BbMenuNavy.copy(alpha = 0.45f),
                 fontSize = 11.sp,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -205,7 +205,7 @@ private fun StatPill(icon: String, value: Int, color: Color) {
         Text(icon, fontSize = 14.sp)
         Text(
             "  $value",
-            color = MenuNavy,
+            color = BbMenuNavy,
             fontWeight = FontWeight.Black,
             fontSize = 14.sp
         )

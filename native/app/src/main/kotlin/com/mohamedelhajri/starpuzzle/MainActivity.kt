@@ -165,7 +165,7 @@ fun StarPuzzleApp() {
             gems += 5
             persistence.saveCoins(coins)
             persistence.saveGems(gems)
-            persistence.saveExtraInt("bb_daily_stamp", todayStamp())
+            store.saveExtraInt("bb_daily_stamp", todayStamp())
             dailyAvailable = false
         }
     }
