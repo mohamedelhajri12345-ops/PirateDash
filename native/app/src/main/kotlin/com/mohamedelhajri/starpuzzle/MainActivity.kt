@@ -124,7 +124,7 @@ fun StarPuzzleApp() {
     var screen by remember { mutableStateOf<BbScreen>(BbScreen.Menu) }
     var best by remember { mutableIntStateOf(persistence.loadBest()) }
     var coins by remember { mutableIntStateOf(persistence.loadCoins()) }
-    var gems by remember { mutableIntStateOf(persistence.loadExtraInt("bb_gems", 0)) }
+    var gems by remember { mutableIntStateOf(persistence.loadGems()) }
     // level grows with total career lines cleared (10 lines per level)
     var level by remember { mutableIntStateOf(1 + persistence.loadTotalLines() / 10) }
     var dailyAvailable by remember {
@@ -155,7 +155,7 @@ fun StarPuzzleApp() {
     fun refreshPersisted() {
         best = persistence.loadBest()
         coins = persistence.loadCoins()
-        gems = persistence.loadExtraInt("bb_gems", 0)
+        gems = persistence.loadGems()
         level = 1 + persistence.loadTotalLines() / 10
     }
 
@@ -164,7 +164,7 @@ fun StarPuzzleApp() {
             coins += 100
             gems += 5
             persistence.saveCoins(coins)
-            persistence.saveExtraInt("bb_gems", gems)
+            persistence.saveGems(gems)
             persistence.saveExtraInt("bb_daily_stamp", todayStamp())
             dailyAvailable = false
         }
