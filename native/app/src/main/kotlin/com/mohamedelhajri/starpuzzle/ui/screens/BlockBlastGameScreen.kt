@@ -108,19 +108,18 @@ private fun hash01(r: Int, c: Int, i: Int): Float {
  *
  * Owner tuning (Oct 6 2026): vivid BB-style block skins, particle
  * bursts + score popup + combo banner on line clears, NO background
- * music (removed permanently), more forgiving drag & drop (easy
+ * music (original in-house soundtrack added in v8.5.0), more forgiving drag & drop (easy
  * pickup, clamped snapping), haptics and the reference SFX set.
  */
 @Composable
 fun BlockBlastGameScreen(
     soundManager: SoundManager,
     persistence: BbPersistence,
-    onExit: (,
+    onExit: () -> Unit,
+    onGameOver: (score: Int, best: Int, coinsEarned: Int) -> Unit,
     dailySeed: Long? = null,
     dailyGoal: Int = 0,
     onDailyComplete: () -> Unit = {}
-) -> Unit,
-    onGameOver: (score: Int, best: Int, coinsEarned: Int) -> Unit
 ) {
     val core = remember { BlockBlastCore() }
     val haptics = LocalHapticFeedback.current
