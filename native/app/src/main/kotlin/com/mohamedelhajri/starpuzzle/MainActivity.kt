@@ -29,6 +29,7 @@ import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastGameScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastGameOverScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastMenuScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastMissionsScreen
+import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastSettingsScreen
 import com.mohamedelhajri.starpuzzle.ui.screens.BlockBlastShopScreen
 import com.mohamedelhajri.starpuzzle.ui.theme.StarPuzzleTheme
 
@@ -44,6 +45,7 @@ sealed class BbScreen {
     data object Game : BbScreen()
     data object Shop : BbScreen()
     data object Missions : BbScreen()
+    data object Settings : BbScreen()
     data class GameOver(val score: Int, val best: Int, val coinsEarned: Int) : BbScreen()
 }
 
@@ -83,6 +85,10 @@ private class BbPrefs(private val store: PrefsSaveStore) : BbPersistence {
     override fun loadCoins(): Int = store.loadCoins()
     override fun saveBest(value: Int) = store.saveBestEndless(value)
     override fun saveCoins(value: Int) = store.saveCoins(value)
+    override fun loadGems(): Int = store.loadExtraInt("bb_gems", 0)
+    override fun saveGems(value: Int) = store.saveExtraInt("bb_gems", value)
+    override fun loadTotalLines(): Int = store.loadExtraInt("bb_total_lines", 0)
+    override fun saveTotalLines(value: Int) = store.saveExtraInt("bb_total_lines", value)
 }
 
 /** Daily-mission progress persistence (per day, per mission index). */
@@ -118,6 +124,12 @@ fun StarPuzzleApp() {
     var screen by remember { mutableStateOf<BbScreen>(BbScreen.Menu) }
     var best by remember { mutableIntStateOf(persistence.loadBest()) }
     var coins by remember { mutableIntStateOf(persistence.loadCoins()) }
+    var gems by remember { mutableIntStateOf(persistence.loadExtraInt("bb_gems", 0)) }
+    // level grows with total career lines cleared (10 lines per level)
+    var level by remember { mutableIntStateOf(1 + persistence.loadTotalLines() / 10) }
+    var dailyAvailable by remember {
+        mutableStateOf(store.loadExtraInt("bb_daily_stamp", 0) != todayStamp())
+    }
 
     sound.enabled = store.loadSound()
     sound.music(false) // BGM off for good
@@ -143,6 +155,19 @@ fun StarPuzzleApp() {
     fun refreshPersisted() {
         best = persistence.loadBest()
         coins = persistence.loadCoins()
+        gems = persistence.loadExtraInt("bb_gems", 0)
+        level = 1 + persistence.loadTotalLines() / 10
+    }
+
+    fun claimDailyBonus() {
+        if (dailyAvailable) {
+            coins += 100
+            gems += 5
+            persistence.saveCoins(coins)
+            persistence.saveExtraInt("bb_gems", gems)
+            persistence.saveExtraInt("bb_daily_stamp", todayStamp())
+            dailyAvailable = false
+        }
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
@@ -153,12 +178,17 @@ fun StarPuzzleApp() {
         ) { current ->
             when (current) {
                 is BbScreen.Menu -> BlockBlastMenuScreen(
+                    level = level,
                     best = best,
                     coins = coins,
+                    gems = gems,
+                    dailyBonusAvailable = dailyAvailable,
                     soundManager = sound,
                     onPlay = { screen = BbScreen.Game },
                     onShop = { screen = BbScreen.Shop },
-                    onMissions = { screen = BbScreen.Missions }
+                    onMissions = { screen = BbScreen.Missions },
+                    onSettings = { screen = BbScreen.Settings },
+                    onClaimDailyBonus = { claimDailyBonus() }
                 )
                 is BbScreen.Game -> BlockBlastGameScreen(
                     soundManager = sound,
@@ -199,6 +229,14 @@ fun StarPuzzleApp() {
                     },
                     onBack = { screen = BbScreen.Menu }
                 )
+                is BbScreen.Settings -> BlockBlastSettingsScreen(
+                    soundInitial = store.loadSound(),
+                    hapticsInitial = store.loadHaptics(),
+                    soundManager = sound,
+                    onSoundChanged = { store.saveSound(it) },
+                    onHapticsChanged = { store.saveHaptics(it) },
+                    onBack = { screen = BbScreen.Menu }
+                )
                 is BbScreen.GameOver -> BlockBlastGameOverScreen(
                     score = current.score,
                     best = current.best,
@@ -210,3 +248,7 @@ fun StarPuzzleApp() {
         }
     }
 }
+
+/** Day stamp (days since epoch) for the daily-bonus cadence. */
+private fun todayStamp(): Int =
+    (System.currentTimeMillis() / 86_400_000L).toInt()

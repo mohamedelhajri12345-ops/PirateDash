@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -77,6 +78,10 @@ interface BbPersistence {
     fun loadCoins(): Int
     fun saveBest(value: Int)
     fun saveCoins(value: Int)
+    fun loadGems(): Int
+    fun saveGems(value: Int)
+    fun loadTotalLines(): Int
+    fun saveTotalLines(value: Int)
 }
 
 // ---------------- particle burst ----------------
@@ -132,6 +137,7 @@ fun BlockBlastGameScreen(
     var score by remember { mutableIntStateOf(0) }
     var best by remember { mutableIntStateOf(0) }
     var coins by remember { mutableIntStateOf(0) }
+    var gems by remember { mutableIntStateOf(0) }
     var coinsEarned by remember { mutableIntStateOf(0) }
     var version by remember { mutableIntStateOf(0) } // triggers redraw after each move
 
@@ -157,6 +163,7 @@ fun BlockBlastGameScreen(
             coins += earned
             coinsEarned += earned
             persistence.saveCoins(coins)
+            persistence.saveTotalLines(persistence.loadTotalLines() + result.clearedLines)
             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             soundManager.play(SoundManager.Sfx.CLEAR)
             if (result.clearedLines >= 2) {
@@ -193,6 +200,7 @@ fun BlockBlastGameScreen(
     LaunchedEffect(Unit) {
         best = persistence.loadBest()
         coins = persistence.loadCoins()
+        gems = persistence.loadGems()
         core.reset()
         score = 0
         coinsEarned = 0
@@ -282,7 +290,8 @@ fun BlockBlastGameScreen(
                         onDragEnd = {
                             val g = geometry(size.width.toFloat(), size.height.toFloat())
                             val piece = core.tray.getOrNull(draggingIndex)
-                            val rc = g.boardAnchor(dragPos, piece, core)
+                            val lifted = Offset(dragPos.x, dragPos.y - g.cell * 1.6f)
+                            val rc = g.boardAnchor(lifted, piece, core)
                             if (rc != null) commitPlacement(draggingIndex, rc.first, rc.second)
                             draggingIndex = -1
                         },
@@ -322,8 +331,37 @@ fun BlockBlastGameScreen(
             // ---- drop preview ghost ----
             val piece = core.tray.getOrNull(draggingIndex)
             if (draggingIndex >= 0 && piece != null) {
-                val rc = g.boardAnchor(dragPos, piece, core)
+                val lifted = Offset(dragPos.x, dragPos.y - g.cell * 1.6f)
+                val rc = g.boardAnchor(lifted, piece, core)
                 if (rc != null) {
+                    // predicted clear-lines glow (BB lights up the lines that WILL explode)
+                    val occupied = Array(BlockBlastSpec.SIZE) { r ->
+                        Array(BlockBlastSpec.SIZE) { c -> core.grid[r][c] != null }
+                    }
+                    for (pr in 0 until piece.rows) for (pc in 0 until piece.cols) {
+                        if (piece.shape[pr][pc] == 1) occupied[rc.first + pr][rc.second + pc] = true
+                    }
+                    val glow = Color.White.copy(alpha = 0.14f)
+                    for (r in 0 until BlockBlastSpec.SIZE) {
+                        if ((0 until BlockBlastSpec.SIZE).all { occupied[r][it] }) {
+                            drawRoundRect(
+                                color = glow,
+                                topLeft = Offset(g.boardX + g.pad / 2f, g.boardY + g.pad + r * (g.cell + g.gap)),
+                                size = Size(g.boardSide - g.pad, g.cell),
+                                cornerRadius = CornerRadius(g.cell * 0.16f)
+                            )
+                        }
+                    }
+                    for (c in 0 until BlockBlastSpec.SIZE) {
+                        if ((0 until BlockBlastSpec.SIZE).all { occupied[it][c] }) {
+                            drawRoundRect(
+                                color = glow,
+                                topLeft = Offset(g.boardX + g.pad + c * (g.cell + g.gap), g.boardY + g.pad / 2f),
+                                size = Size(g.cell, g.boardSide - g.pad),
+                                cornerRadius = CornerRadius(g.cell * 0.16f)
+                            )
+                        }
+                    }
                     for (pr in 0 until piece.rows) {
                         for (pc in 0 until piece.cols) {
                             if (piece.shape[pr][pc] == 1) {
@@ -452,17 +490,53 @@ fun BlockBlastGameScreen(
                 val c = g.cell * pickupAnim.value
                 val w = piece.cols * c
                 val h = piece.rows * c
-                drawPiece(piece, dragPos.x - w / 2f, dragPos.y - h / 2f, w, h, c, texture)
+                drawPiece(piece, dragPos.x - w / 2f, dragPos.y - h / 2f - g.cell * 1.6f, w, h, c, texture)
             }
         }
 
-        // ---------------- BOOSTER ROW (free during testing) ----------------
+        // ---------------- BOOSTER ROW ----------------
+        // NEW PIECES: free during the testing phase (owner instruction).
+        // RETRY & BOOST: paid with gems only (owner: NOT free).
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 18.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.End
         ) {
+            BbGoldPill("RETRY \uD83D\uDC8E${BlockBlastSpec.RETRY_COST_GEMS}") {
+                if (draggingIndex < 0 && core.canUndo && gems >= BlockBlastSpec.RETRY_COST_GEMS) {
+                    gems -= BlockBlastSpec.RETRY_COST_GEMS
+                    persistence.saveGems(gems)
+                    core.undoLastMove()
+                    version++
+                    score = core.score
+                    soundManager.play(SoundManager.Sfx.BACK)
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                } else {
+                    soundManager.play(SoundManager.Sfx.INVALID)
+                }
+            }
+            Spacer(Modifier.width(10.dp))
+            BbGoldPill("BOOST \uD83D\uDCA5${BlockBlastSpec.BOOST_COST_GEMS}") {
+                if (draggingIndex < 0 && gems >= BlockBlastSpec.BOOST_COST_GEMS) {
+                    val hasAnyBlock = core.grid.any { row -> row.any { it != null } }
+                    if (hasAnyBlock) {
+                        gems -= BlockBlastSpec.BOOST_COST_GEMS
+                        persistence.saveGems(gems)
+                        val cells = core.useBombBoost()
+                        version++
+                        burstSeed = BurstSeed(cells, 0)
+                        scope.launch { burstProgress.snapTo(0f) }
+                        soundManager.play(SoundManager.Sfx.BOMB)
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    } else {
+                        soundManager.play(SoundManager.Sfx.INVALID)
+                    }
+                } else {
+                    soundManager.play(SoundManager.Sfx.INVALID)
+                }
+            }
+            Spacer(Modifier.width(10.dp))
             BbGoldPill("NEW PIECES") {
                 if (draggingIndex < 0) {
                     core.rerollTray()
@@ -500,7 +574,7 @@ private data class GameGeometry(
 ) {
     /** Easy pickup: generous hitbox around each tray slot. */
     fun trayIndexAt(offset: Offset): Int {
-        val slack = 34f
+        val slack = 90f
         if (offset.y < trayY - slack || offset.y > trayY + slotH + slack) return -1
         val rel = offset.x - trayX
         if (rel < -slotW / 2f) return -1

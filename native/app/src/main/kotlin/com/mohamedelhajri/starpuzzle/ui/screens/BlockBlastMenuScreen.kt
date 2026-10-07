@@ -2,7 +2,6 @@ package com.mohamedelhajri.starpuzzle.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,13 +13,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -31,240 +31,282 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mohamedelhajri.starpuzzle.audio.SoundManager
-import com.mohamedelhajri.starpuzzle.core.BlockBlastSpec
 
 /**
- * Block Blast home screen structure, built natively in Compose:
- * avatar + coin chip top row, glossy letter-tile STAR logo + PUZZLE
- * wordmark, star mascot, wide gold 3D PLAY button, SHOP / MISSIONS
- * pills, bottom icon row.
+ * Main Menu — matches the owner's reference screenshot 1:1 in layout
+ * and features (top status bar with level/coins/gems, puzzle-piece
+ * logo, title + subtitle, 4 full-width action buttons, daily-bonus
+ * banner, version footer). Brand & colors are Star Puzzle's own.
  */
+val MenuBgTop = Color(0xFFBFEAF0)
+val MenuBgBottom = Color(0xFFD9C7F0)
+val MenuNavy = Color(0xFF2B2255)
+val MenuPlay = Color(0xFFFF6B4A)
+val MenuShop = Color(0xFF1FBFB2)
+val MenuMissions = Color(0xFF8B5CF6)
+val MenuSettings = Color(0xFF3B82F6)
+val MenuGold = Color(0xFFFFC93C)
+
 @Composable
 fun BlockBlastMenuScreen(
+    level: Int,
     best: Int,
     coins: Int,
+    gems: Int,
+    dailyBonusAvailable: Boolean,
     soundManager: SoundManager,
     onPlay: () -> Unit,
     onShop: () -> Unit,
-    onMissions: () -> Unit
+    onMissions: () -> Unit,
+    onSettings: () -> Unit,
+    onClaimDailyBonus: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BbBackground)
+            .background(Brush.verticalGradient(listOf(MenuBgTop, MenuBgBottom)))
     ) {
-        // ---- top row: avatar + coins ----
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .background(
-                        Brush.verticalGradient(listOf(Color(0xFF5876CA), Color(0xFF3B4E9E))),
-                        CircleShape
-                    )
-                    .border(3.dp, BbGold, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("M", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
-            }
-            BbCoinChip(coins, big = true)
-        }
+        // decorative floating puzzle-piece confetti, like the reference art
+        Canvas(modifier = Modifier.fillMaxSize()) { drawMenuConfetti() }
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 90.dp, bottom = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(horizontal = 18.dp, vertical = 18.dp)
         ) {
-            // ---- glossy letter-tile logo: STAR ----
-            val tiles = remember(BlockBlastSpec.activeSkinId) {
-                val palette = BlockBlastSpec.COLORS
-                listOf(
-                    "S" to palette[0],
-                    "T" to palette[2],
-                    "A" to palette[4],
-                    "R" to palette[1]
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                tiles.forEach { (letter, color) ->
-                    Box(
-                        modifier = Modifier
-                            .size(54.dp)
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color(color.toLong() or 0xFF000000L),
-                                        Color(color.toLong() or 0xFF000000L)
-                                    )
-                                ),
-                                RoundedCornerShape(12.dp)
-                            )
-                            .shadow(6.dp, RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            letter,
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 30.sp
-                        )
-                    }
-                }
-            }
-            Text(
-                "PUZZLE",
-                color = Color.White,
-                fontWeight = FontWeight.Black,
-                fontSize = 30.sp,
-                letterSpacing = 12.sp,
-                modifier = Modifier.padding(top = 10.dp)
-            )
-
-            // ---- star mascot ----
-            Canvas(modifier = Modifier.size(120.dp).padding(top = 8.dp)) {
-                drawStarMascot()
-            }
-
-            // ---- wide gold PLAY button ----
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.82f)
-                    .padding(top = 18.dp)
-                    .shadow(8.dp, RoundedCornerShape(18.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFFFFD34E), Color(0xFFFFB32E), Color(0xFFFF9F1C))
-                        ),
-                        RoundedCornerShape(18.dp)
-                    )
-                    .clickable {
-                        soundManager.play(SoundManager.Sfx.START)
-                        onPlay()
-                    }
-                    .padding(vertical = 16.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "PLAY",
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 26.sp,
-                    letterSpacing = 2.sp
-                )
-            }
-
-            // ---- secondary pills ----
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.padding(top = 16.dp)
-            ) {
-                PillButton("SHOP") {
-                    soundManager.play(SoundManager.Sfx.CONFIRM)
-                    onShop()
-                }
-                PillButton("MISSIONS") {
-                    soundManager.play(SoundManager.Sfx.CONFIRM)
-                    onMissions()
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-            Text(
-                "BEST $best",
-                color = BbTextSoft,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 15.sp
-            )
-
-            // ---- bottom icon row ----
+            // ---- top status bar: LEVEL * / coins / gems ----
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 18.dp),
-                horizontalArrangement = Arrangement.Center
+                    .shadow(4.dp, RoundedCornerShape(22.dp))
+                    .background(Color.White.copy(alpha = 0.85f), RoundedCornerShape(22.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                val icons = listOf("\uD83C\uDF82", "\uD83C\uDFAF", "\uD83D\uDCAE", "\u2699")
-                icons.forEach { icon ->
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 9.dp)
-                            .size(46.dp)
-                            .background(Color.Black.copy(alpha = 0.3f), CircleShape)
-                            .clickable { },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(icon, fontSize = 21.sp)
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("\u2B50", fontSize = 16.sp)
+                    Text(
+                        "  LEVEL $level",
+                        color = MenuNavy,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.sp
+                    )
                 }
+                StatPill(icon = "\uD83E\uDE99", value = coins, color = Color(0xFFFF9F1C))
+                Spacer(Modifier.width(8.dp))
+                StatPill(icon = "\uD83D\uDC8E", value = gems, color = Color(0xFF3DA9FC))
             }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(Modifier.height(26.dp))
+
+                // ---- puzzle-piece logo: 3x3 colorful jigsaw grid ----
+                Canvas(modifier = Modifier.size(150.dp)) { drawJigsawLogo() }
+
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    "MAIN MENU",
+                    color = MenuNavy,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 28.sp
+                )
+                Text(
+                    "Star Puzzle \u2022 Ready to Play!",
+                    color = MenuNavy.copy(alpha = 0.7f),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+
+                Spacer(Modifier.height(26.dp))
+
+                MenuButton("Play", "\u25B6", MenuPlay) {
+                    soundManager.play(SoundManager.Sfx.START)
+                    onPlay()
+                }
+                Spacer(Modifier.height(12.dp))
+                MenuButton("Shop", "\uD83D\uDED2", MenuShop) {
+                    soundManager.play(SoundManager.Sfx.CONFIRM)
+                    onShop()
+                }
+                Spacer(Modifier.height(12.dp))
+                MenuButton("Missions", "\u2705", MenuMissions) {
+                    soundManager.play(SoundManager.Sfx.CONFIRM)
+                    onMissions()
+                }
+                Spacer(Modifier.height(12.dp))
+                MenuButton("Settings", "\u2699", MenuSettings) {
+                    soundManager.play(SoundManager.Sfx.CONFIRM)
+                    onSettings()
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "BEST $best",
+                    color = MenuNavy.copy(alpha = 0.55f),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 13.sp
+                )
+            }
+
+            // ---- daily bonus banner ----
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, RoundedCornerShape(18.dp))
+                    .background(
+                        Brush.horizontalGradient(listOf(MenuGold, Color(0xFFFFA726))),
+                        RoundedCornerShape(18.dp)
+                    )
+                    .clickable(enabled = dailyBonusAvailable) {
+                        soundManager.play(SoundManager.Sfx.COMPLETE)
+                        onClaimDailyBonus()
+                    }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("\uD83C\uDF81  ", fontSize = 16.sp)
+                Text(
+                    if (dailyBonusAvailable) "Daily Bonus Ready! Claim now" else "Daily Bonus Claimed \u2014 come back tomorrow",
+                    color = Color(0xFF5A3A00),
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 14.sp
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Star Puzzle v8.4.0 \u2022 No internet required",
+                color = MenuNavy.copy(alpha = 0.45f),
+                fontSize = 11.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 2.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }
 
 @Composable
-private fun PillButton(label: String, onClick: () -> Unit) {
-    Box(
+private fun StatPill(icon: String, value: Int, color: Color) {
+    Row(
         modifier = Modifier
-            .background(Color.Black.copy(alpha = 0.25f), RoundedCornerShape(24.dp))
-            .border(2.dp, BbGold, RoundedCornerShape(24.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 22.dp, vertical = 9.dp)
+            .background(color.copy(alpha = 0.15f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        Text(icon, fontSize = 14.sp)
         Text(
-            label,
-            color = BbGold,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 15.sp,
-            letterSpacing = 1.sp
+            "  $value",
+            color = MenuNavy,
+            fontWeight = FontWeight.Black,
+            fontSize = 14.sp
         )
     }
 }
 
-/** Star mascot with a face, matching the home-screen mood of the real game. */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawStarMascot() {
-    val w = size.width
-    val h = size.height
-    val cx = w / 2f
-    val cy = h / 2f
-    val outer = w * 0.46f
-    val inner = outer * 0.42f
-
-    val path = Path()
-    for (i in 0 until 10) {
-        val angle = Math.toRadians((-90 + i * 36).toDouble())
-        val radius = if (i % 2 == 0) outer else inner
-        val x = cx + (radius * kotlin.math.cos(angle)).toFloat()
-        val y = cy + (radius * kotlin.math.sin(angle)).toFloat()
-        if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+@Composable
+private fun MenuButton(label: String, icon: String, color: Color, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(0.86f)
+            .shadow(6.dp, RoundedCornerShape(20.dp))
+            .background(
+                Brush.verticalGradient(listOf(color.copy(alpha = 0.95f), color)),
+                RoundedCornerShape(20.dp)
+            )
+            .clickable { onClick() }
+            .padding(vertical = 16.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(icon, color = Color.White, fontSize = 20.sp)
+        Text(
+            "  $label",
+            color = Color.White,
+            fontWeight = FontWeight.Black,
+            fontSize = 20.sp
+        )
     }
-    path.close()
-    // golden body
-    drawPath(path, Color(0xFFFFC93C), style = Fill)
-    // outline
-    drawPath(path, Color(0xFFB8860B), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6f))
-    // face
-    drawCircle(Color(0xFF3A3A55), radius = w * 0.05f, center = Offset(cx - w * 0.10f, cy - h * 0.04f))
-    drawCircle(Color(0xFF3A3A55), radius = w * 0.05f, center = Offset(cx + w * 0.10f, cy - h * 0.04f))
-    drawCircle(Color.White, radius = w * 0.017f, center = Offset(cx - w * 0.085f, cy - h * 0.055f))
-    drawCircle(Color.White, radius = w * 0.017f, center = Offset(cx + w * 0.115f, cy - h * 0.055f))
-    // smile
-    val smile = Path()
-    smile.moveTo(cx - w * 0.09f, cy + h * 0.10f)
-    smile.quadraticBezierTo(cx, cy + h * 0.17f, cx + w * 0.09f, cy + h * 0.10f)
-    drawPath(smile, Color(0xFF3A3A55), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5f))
+}
+
+/** 3x3 colorful jigsaw-piece logo, matching the reference art's puzzle icon. */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawJigsawLogo() {
+    val colors = listOf(
+        Color(0xFFFF6B6B), Color(0xFF4FC3F7), Color(0xFFFFD54F),
+        Color(0xFF66BB6A), Color(0xFF9575CD), Color(0xFFFF8A65),
+        Color(0xFF4DB6AC), Color(0xFFBA68C8), Color(0xFFFFB74D)
+    )
+    val cell = size.minDimension / 3.4f
+    val gap = cell * 0.08f
+    val startX = (size.width - cell * 3f - gap * 2f) / 2f
+    val startY = (size.height - cell * 3f - gap * 2f) / 2f
+    val tab = cell * 0.22f
+    for (row in 0 until 3) {
+        for (col in 0 until 3) {
+            val x = startX + col * (cell + gap)
+            val y = startY + row * (cell + gap)
+            val path = Path().apply {
+                addRoundRect(
+                    androidx.compose.ui.geometry.RoundRect(
+                        x, y, x + cell, y + cell,
+                        androidx.compose.ui.geometry.CornerRadius(cell * 0.18f)
+                    )
+                )
+            }
+            drawPath(path, colors[(row * 3 + col) % colors.size], style = Fill)
+            // small jigsaw tab nub between pieces for the puzzle look
+            if (col < 2) {
+                drawCircle(
+                    color = colors[(row * 3 + col) % colors.size],
+                    radius = tab / 2f,
+                    center = Offset(x + cell, y + cell / 2f)
+                )
+            }
+            if (row < 2) {
+                drawCircle(
+                    color = colors[(row * 3 + col) % colors.size],
+                    radius = tab / 2f,
+                    center = Offset(x + cell / 2f, y + cell)
+                )
+            }
+        }
+    }
+}
+
+/** Soft floating puzzle-piece confetti in the background, like the reference art. */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMenuConfetti() {
+    val pieces = listOf(
+        Triple(0.08f, 0.12f, Color(0xFFFF8A80)),
+        Triple(0.88f, 0.08f, Color(0xFF80DEEA)),
+        Triple(0.90f, 0.30f, Color(0xFFFFD54F)),
+        Triple(0.06f, 0.55f, Color(0xFF4FC3F7)),
+        Triple(0.92f, 0.62f, Color(0xFF81C784)),
+        Triple(0.10f, 0.85f, Color(0xFFBA68C8))
+    )
+    pieces.forEach { (fx, fy, color) ->
+        val cx = size.width * fx
+        val cy = size.height * fy
+        val s = size.minDimension * 0.045f
+        drawRoundRect(
+            color = color.copy(alpha = 0.35f),
+            topLeft = Offset(cx - s / 2f, cy - s / 2f),
+            size = androidx.compose.ui.geometry.Size(s, s),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(s * 0.3f)
+        )
+    }
 }
 
 /**
  * Game over screen in the real game's style: GAME OVER title,
- * final score, BEST line, coin chip, gold PLAY AGAIN button.
+ * final score, BEST line, coin recap, PLAY AGAIN + MENU buttons.
  */
 @Composable
 fun BlockBlastGameOverScreen(
@@ -283,58 +325,54 @@ fun BlockBlastGameOverScreen(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 "GAME OVER",
-                color = BbGold,
-                fontWeight = FontWeight.Black,
-                fontSize = 34.sp,
-                letterSpacing = 2.sp
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                score.toString(),
                 color = Color.White,
                 fontWeight = FontWeight.Black,
-                fontSize = 58.sp
+                fontSize = 32.sp,
+                letterSpacing = 2.sp
             )
+            Spacer(Modifier.height(18.dp))
+            Text(
+                score.toString(),
+                color = BbGold,
+                fontWeight = FontWeight.Black,
+                fontSize = 56.sp
+            )
+            Text("SCORE", color = BbTextSoft, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+            Spacer(Modifier.height(10.dp))
             Text(
                 "BEST $best",
-                color = BbTextSoft,
+                color = Color.White,
                 fontWeight = FontWeight.ExtraBold,
-                fontSize = 15.sp
+                fontSize = 16.sp
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(6.dp))
             BbCoinChip(coins, big = true)
+
+            Spacer(Modifier.height(26.dp))
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.66f)
-                    .padding(top = 18.dp)
-                    .shadow(8.dp, RoundedCornerShape(18.dp))
+                    .fillMaxWidth(0.7f)
                     .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFFFFD34E), Color(0xFFFFB32E), Color(0xFFFF9F1C))
-                        ),
-                        RoundedCornerShape(18.dp)
+                        Brush.verticalGradient(listOf(Color(0xFFFFD34E), Color(0xFFFF9F1C))),
+                        RoundedCornerShape(16.dp)
                     )
                     .clickable { onPlayAgain() }
-                    .padding(vertical = 13.dp),
+                    .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    "PLAY AGAIN",
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 20.sp,
-                    letterSpacing = 1.sp
-                )
+                Text("PLAY AGAIN", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
             }
-            Text(
-                "MENU",
-                color = BbTextSoft,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 16.sp,
+            Spacer(Modifier.height(12.dp))
+            Box(
                 modifier = Modifier
-                    .padding(top = 16.dp)
+                    .fillMaxWidth(0.7f)
+                    .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
                     .clickable { onMenu() }
-            )
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("MENU", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
         }
     }
 }

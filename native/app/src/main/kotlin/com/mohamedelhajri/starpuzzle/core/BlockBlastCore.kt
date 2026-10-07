@@ -20,6 +20,11 @@ object BlockBlastSpec {
     const val TRAY_SIZE = 3
     const val COINS_PER_LINE = 5
 
+    // ---- paid-only boosters (owner: NOT free, cost real gems) ----
+    const val GEMS_PER_LEVEL_UP = 0 // reserved
+    const val RETRY_COST_GEMS = 15
+    const val BOOST_COST_GEMS = 25
+
     /**
      * Vibrant Block Blast-style block skins (owner request, Oct 6 2026:
      * "vibrant, fun colors like the blue in Block Blast").
@@ -162,7 +167,73 @@ class BlockBlastCore {
     var lastClearedLines = 0
         private set
 
+    /** One-level undo snapshot captured right before each successful placement. */
+    private data class Snapshot(
+        val grid: Array<Array<Int?>>,
+        val score: Int,
+        val tray: List<BlockPiece?>,
+        val lastClearedLines: Int
+    )
+    private var snapshot: Snapshot? = null
+
+    /** Whether a RETRY (undo last placement) is currently available. */
+    val canUndo: Boolean get() = snapshot != null
+
+    /**
+     * RETRY booster: restores the board to right before the last
+     * placement. One level deep — consumed by use. Paid with gems
+     * by the caller (gem spending lives in the UI layer).
+     */
+    fun undoLastMove(): Boolean {
+        val s = snapshot ?: return false
+        for (r in grid.indices) {
+            for (c in grid[r].indices) grid[r][c] = s.grid[r][c]
+        }
+        score = s.score
+        tray = s.tray
+        lastClearedLines = s.lastClearedLines
+        isGameOver = false
+        snapshot = null
+        return true
+    }
+
+    /**
+     * BOOST booster: detonates a 3x3 bomb centered on the board's
+     * most-filled 3x3 area (biggest relief for the player), clearing
+     * every cell in it. Paid with gems by the caller.
+     */
+    fun useBombBoost(): List<ClearedCell> {
+        var bestRow = 0
+        var bestCol = 0
+        var bestFill = -1
+        for (r in 0..BlockBlastSpec.SIZE - 3) {
+            for (c in 0..BlockBlastSpec.SIZE - 3) {
+                var fill = 0
+                for (dr in 0 until 3) for (dc in 0 until 3) {
+                    if (grid[r + dr][c + dc] != null) fill++
+                }
+                if (fill > bestFill) {
+                    bestFill = fill
+                    bestRow = r
+                    bestCol = c
+                }
+            }
+        }
+        val cleared = mutableListOf<ClearedCell>()
+        for (dr in 0 until 3) {
+            for (dc in 0 until 3) {
+                val r = bestRow + dr
+                val c = bestCol + dc
+                grid[r][c]?.let { cleared.add(ClearedCell(r, c, it)) }
+                grid[r][c] = null
+            }
+        }
+        isGameOver = false
+        return cleared
+    }
+
     fun reset() {
+        snapshot = null
         for (r in grid.indices) java.util.Arrays.fill(grid[r], null)
         score = 0
         isGameOver = false
@@ -224,6 +295,13 @@ class BlockBlastCore {
         if (isGameOver) return null
         val piece = tray.getOrNull(trayIndex) ?: return null
         if (!canPlace(piece, row, col)) return null
+
+        snapshot = Snapshot(
+            grid = Array(BlockBlastSpec.SIZE) { r -> grid[r].copyOf() },
+            score = score,
+            tray = tray,
+            lastClearedLines = lastClearedLines
+        )
 
         val placedCells = mutableListOf<ClearedCell>()
         for (r in 0 until piece.rows) {
