@@ -30,7 +30,8 @@ class BlockBlastCoreTest {
         // reference-package catalogs: 11 cell styles, 5 clear effects
         assertEquals(11, BlockBlastSpec.CELL_SKINS.size)
         assertEquals(5, BlockBlastSpec.CLEAR_EFFECTS.size)
-        assertEquals(16, BlockBlastSpec.POINTS_PER_LINE)
+        // new deterministic scoring (§17): 100/300/600/1000 + combo bonus
+        assertTrue(BlockBlastSpec.LINE_SCORES.contentEquals(intArrayOf(0, 100, 300, 600, 1000)))
         assertEquals(3, BlockBlastSpec.TRAY_SIZE)
         assertEquals(5, BlockBlastSpec.COINS_PER_LINE)
         // the 3x3 square (shape index 10) has 9 filled cells
@@ -78,7 +79,7 @@ class BlockBlastCoreTest {
     }
 
     @Test
-    fun `full row clears and awards 16`() {
+    fun `full row clears and awards 100`() {
         val core = newCore()
         // fill row 0 with 8 single-cell pieces, always into the first free slot
         repeat(8) {
@@ -86,13 +87,13 @@ class BlockBlastCoreTest {
             val col = (0 until BlockBlastSpec.SIZE).first { c -> core.grid[0][c] == null }
             core.place(idx, 0, col)
         }
-        // 8 cells placed (+1 each) and the row cleared once (+16)
-        assertEquals(8 * 1 + 16, core.score)
+        // 8 cells placed (+1 each) and the row cleared once (+100)
+        assertEquals(8 * 1 + 100, core.score)
         assertTrue((0 until BlockBlastSpec.SIZE).all { c -> core.grid[0][c] == null })
     }
 
     @Test
-    fun `two lines at once award 32 and report a combo`() {
+    fun `two lines at once award 300 and report a combo`() {
         val core = newCore()
         // row 0 missing only (0,7); column 7 missing only (0,7).
         // The final single cell at (0,7) completes BOTH -> combo.
@@ -106,8 +107,8 @@ class BlockBlastCoreTest {
         }
         val idx = core.tray.indexOfFirst { p -> p != null }
         core.place(idx, 0, 7) // completes row 0 + column 7 in one move
-        // 15 cells placed + 2 lines x 16
-        assertEquals(15 + 32, core.score)
+        // 15 cells placed + 2 lines base 300 (no streak bonus yet)
+        assertEquals(15 + 300, core.score)
         assertEquals(2, core.lastClearedLines)
     }
 
