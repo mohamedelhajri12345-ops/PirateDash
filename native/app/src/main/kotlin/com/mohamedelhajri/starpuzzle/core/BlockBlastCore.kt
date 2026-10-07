@@ -154,11 +154,7 @@ data class PlaceResult(
     val placedCells: List<ClearedCell>,
     val gained: Int,
     val comboStreak: Int
-),
-    val placedCells: List<ClearedCell> = emptyList()
-) {
-    val scoreGained: Int get() = cellsPlaced + clearedLines * BlockBlastSpec.POINTS_PER_LINE
-}
+)
 
 class BlockBlastCore {
 
