@@ -145,7 +145,6 @@ fun BlockBlastMenuScreen(
                     }
                     path.close()
                     drawPath(path, Color(0xFFFFD34E), style = Fill)
-                    drawPath(path.copy(), accent.copy(alpha = 0.25f), style = Fill)
                 }
                 Text(
                     "STAR PUZZLE",

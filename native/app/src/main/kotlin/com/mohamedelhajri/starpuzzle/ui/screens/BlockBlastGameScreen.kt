@@ -566,11 +566,11 @@ fun BlockBlastGameScreen(
             // ---- BOMB shockwave ring (§23) during any burst ----
             burstSeed?.let { seed ->
                 val t = burstProgress.value
-                if (t < 1f && seed.cells.isNotEmpty()) {
-                    val avg = seed.cells.fold(Offset.Zero) { acc, c ->
+                if (t < 1f && seed.clearedCells.isNotEmpty()) {
+                    val avg = seed.clearedCells.fold(Offset.Zero) { acc, c ->
                         Offset(acc.x + g.boardX + g.pad + c.col * (g.cell + g.gap) + g.cell / 2f,
                                acc.y + g.boardY + g.pad + c.row * (g.cell + g.gap) + g.cell / 2f)
-                    }.div(seed.cells.size.toFloat())
+                    }.div(seed.clearedCells.size.toFloat())
                     drawCircle(
                         color = BbAccent.copy(alpha = (1f - t) * 0.7f),
                         radius = g.cell * (0.5f + t * 5f),
